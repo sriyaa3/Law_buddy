@@ -127,7 +127,7 @@ class AdvancedDocumentParser:
     
     def extract_metadata(self, file_path: str) -> Dict[str, Any]:
         """
-        Extract enhanced metadata from document
+        Extract basic metadata from document
         
         Args:
             file_path (str): Path to the document file
@@ -155,13 +155,13 @@ class AdvancedDocumentParser:
         # Extract document-specific metadata
         if file_type == 'pdf':
             try:
-                with pdfplumber.open(file_path) as pdf:
-                    metadata.update({
-                        "page_count": len(pdf.pages),
-                        "author": pdf.metadata.get('Author', 'Unknown'),
-                        "title": pdf.metadata.get('Title', 'Unknown'),
-                        "subject": pdf.metadata.get('Subject', 'Unknown')
-                    })
+                reader = PdfReader(file_path)
+                metadata.update({
+                    "page_count": len(reader.pages),
+                    "author": reader.metadata.get('/Author', 'Unknown') if reader.metadata else 'Unknown',
+                    "title": reader.metadata.get('/Title', 'Unknown') if reader.metadata else 'Unknown',
+                    "subject": reader.metadata.get('/Subject', 'Unknown') if reader.metadata else 'Unknown'
+                })
             except:
                 pass
         elif file_type == 'docx':
