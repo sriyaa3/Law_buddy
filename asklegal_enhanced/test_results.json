@@ -1,0 +1,44 @@
+{
+  "summary": {
+    "passed": 6,
+    "failed": 1,
+    "warnings": 0
+  },
+  "results": [
+    {
+      "test": "Server connection",
+      "status": "FAIL",
+      "message": "Cannot connect to server"
+    },
+    {
+      "test": "TinyLlama model",
+      "status": "PASS",
+      "message": "Size: 0.0 MB"
+    },
+    {
+      "test": "Embedding models",
+      "status": "PASS",
+      "message": "Directory exists"
+    },
+    {
+      "test": "Database file",
+      "status": "PASS",
+      "message": "Size: 48.0 KB"
+    },
+    {
+      "test": "Database tables",
+      "status": "PASS",
+      "message": "Found 6 tables"
+    },
+    {
+      "test": "FAISS index",
+      "status": "PASS",
+      "message": "Index file exists"
+    },
+    {
+      "test": "FAISS load",
+      "status": "PASS",
+      "message": "Contains 100 vectors"
+    }
+  ]
+}
