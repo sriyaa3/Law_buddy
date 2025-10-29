@@ -53,7 +53,7 @@ class TestRunner:
         """Test if server is running"""
         print(f"\n{BLUE}Testing Server Connection...{NC}")
         try:
-            response = requests.get(f"{self.base_url}/api/v1/docs", timeout=5)
+            response = requests.get(f"{self.base_url}/docs", timeout=5)
             if response.status_code == 200:
                 self.print_test("Server is running", "PASS", "API docs accessible")
                 return True
