@@ -1,23 +1,14 @@
-import pdfplumber
+from PyPDF2 import PdfReader
 from docx import Document as DocxDocument
-import layoutparser as lp
 from typing import List, Dict, Any
 import re
 
 class AdvancedDocumentParser:
-    """Advanced document parser with layout awareness and clause detection"""
+    """Simplified document parser without external dependencies"""
     
     def __init__(self):
-        # Initialize layout model
-        try:
-            self.layout_model = lp.Detectron2LayoutModel(
-                'lp://PubLayNet/faster_rcnn_R_50_FPN_3x/config',
-                extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.8],
-                label_map={0: "Text", 1: "Title", 2: "List", 3: "Table", 4: "Figure"}
-            )
-        except:
-            self.layout_model = None
-            print("Warning: Layout model not available. Using basic parsing.")
+        # No external dependencies needed
+        print("Initialized simplified document parser")
     
     def parse_pdf(self, file_path: str) -> List[Dict[str, Any]]:
         """
