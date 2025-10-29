@@ -6,9 +6,9 @@
   },
   "results": [
     {
-      "test": "Server response",
+      "test": "Server connection",
       "status": "FAIL",
-      "message": "Status code: 404"
+      "message": "HTTPConnectionPool(host='localhost', port=8001): Read timed out. (read timeout=5)"
     },
     {
       "test": "TinyLlama model",
