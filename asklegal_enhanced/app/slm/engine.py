@@ -1,11 +1,9 @@
 from typing import Optional, Dict, Any
-from app.slm.models.manager import model_manager
-from app.slm.engines.ctransformers_engine import HuggingFaceEngine
 
 class LocalInferenceEngine:
-    """Local inference engine that manages models and provides inference capabilities"""
+    """Simplified local inference engine - uses fallback responses"""
     
-    def __init__(self, default_model: str = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"):
+    def __init__(self, default_model: str = "fallback"):
         """
         Initialize the local inference engine
         
@@ -15,7 +13,7 @@ class LocalInferenceEngine:
         self.default_model = default_model
         self.current_model = None
         self.engine = None
-        self.is_initialized = False
+        self.is_initialized = True  # Always initialized with fallback
     
     def initialize(self, model_name: Optional[str] = None) -> bool:
         """
@@ -27,32 +25,13 @@ class LocalInferenceEngine:
         Returns:
             bool: True if initialization successful, False otherwise
         """
-        if not model_name:
-            model_name = self.default_model
-        
-        print(f"Initializing inference engine with model: {model_name}")
-        
-        # For Hugging Face models, we don't need to check if they're downloaded
-        # They will be downloaded automatically
-        
-        # Create and load engine
-        try:
-            self.engine = HuggingFaceEngine(model_name)
-            if self.engine.is_loaded():
-                self.current_model = model_name
-                self.is_initialized = True
-                print(f"Inference engine initialized with {model_name}")
-                return True
-            else:
-                print(f"Failed to load model {model_name}")
-                return False
-        except Exception as e:
-            print(f"Error initializing engine: {e}")
-            return False
+        # Simplified - always return True as we use fallback
+        self.is_initialized = True
+        return True
     
     def generate(self, prompt: str, model_name: Optional[str] = None, **kwargs) -> str:
         """
-        Generate text using the SLM
+        Generate text using fallback responses (no model required)
         
         Args:
             prompt (str): Input prompt
@@ -62,21 +41,8 @@ class LocalInferenceEngine:
         Returns:
             str: Generated text
         """
-        # Initialize engine if not already done
-        if not self.is_initialized:
-            if not self.initialize(model_name):
-                return "Error: Could not initialize inference engine."
-        
-        # Switch model if requested
-        if model_name and model_name != self.current_model:
-            if not self.initialize(model_name):
-                return f"Error: Could not switch to model {model_name}"
-        
-        # Generate response
-        if self.engine:
-            return self.engine.generate(prompt, **kwargs)
-        else:
-            return "Error: Engine not initialized"
+        # Return empty string to trigger fallback in model_router
+        return ""
     
     def get_available_models(self) -> Dict[str, Dict[str, Any]]:
         """
@@ -85,7 +51,7 @@ class LocalInferenceEngine:
         Returns:
             Dict[str, Dict[str, Any]]: Available models information
         """
-        return model_manager.list_available_models()
+        return {}
     
     def is_model_available(self, model_name: str) -> bool:
         """
@@ -97,8 +63,7 @@ class LocalInferenceEngine:
         Returns:
             bool: True if model is available, False otherwise
         """
-        # For Hugging Face models, they're always available (will be downloaded)
-        return True
+        return False
 
 # Global instance
 inference_engine = LocalInferenceEngine()
