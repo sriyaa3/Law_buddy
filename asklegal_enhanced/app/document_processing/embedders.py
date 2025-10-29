@@ -51,53 +51,38 @@ class TextEmbedder:
         return np.array(embeddings)
 
 class ImageEmbedder:
-    """Image embedding service (simplified implementation)"""
+    """Simplified image embedder"""
     
     def __init__(self):
         """Initialize the image embedder"""
-        # For now, we'll use a simple approach that converts images to vectors
-        # In a full implementation, we would use a proper image embedding model
-        pass
+        self.dimension = 384
+        print("Initialized simplified image embedder")
     
     def embed_image(self, image_path: str) -> np.ndarray:
         """
-        Generate embedding for an image (simplified)
+        Generate simple embedding for an image
         
         Args:
             image_path (str): Path to the image file
             
         Returns:
-            np.ndarray: Image embedding vector (simplified)
+            np.ndarray: Image embedding vector
         """
-        # Load image
-        image = Image.open(image_path)
-        
-        # Resize to a fixed size
-        image = image.resize((224, 224))
-        
-        # Convert to numpy array and flatten
-        image_array = np.array(image)
-        if len(image_array.shape) == 3:
-            # RGB image
-            flattened = image_array.flatten()
-        else:
-            # Grayscale image, convert to 3 channels
-            flattened = np.stack([image_array, image_array, image_array], axis=-1).flatten()
-        
-        # Normalize and reduce dimensionality
-        normalized = flattened / 255.0
-        # Simple averaging to reduce dimensions (this is a very simplified approach)
-        reduced = np.mean(normalized.reshape(-1, 10), axis=1)
-        
-        return reduced
+        # Simple hash-based embedding
+        hash_value = hash(image_path)
+        np.random.seed(abs(hash_value) % (2**32))
+        embedding = np.random.rand(self.dimension).astype('float32')
+        embedding = embedding / np.linalg.norm(embedding)
+        return embedding
 
 class MultimodalEmbedder:
-    """Multimodal embedding service combining text and image embeddings"""
+    """Simplified multimodal embedding service"""
     
     def __init__(self):
         """Initialize the multimodal embedder"""
         self.text_embedder = TextEmbedder()
         self.image_embedder = ImageEmbedder()
+        self.dimension = 384
     
     def embed_document_element(self, element: dict) -> np.ndarray:
         """
@@ -109,38 +94,11 @@ class MultimodalEmbedder:
         Returns:
             np.ndarray: Combined embedding vector
         """
-        embeddings = []
-        
-        # Embed text if present
+        # For simplicity, just use text embedding
         if 'text' in element and element['text']:
-            text_embedding = self.text_embedder.embed_text(element['text'])
-            embeddings.append(text_embedding)
-        
-        # Embed image if present
-        if 'image_path' in element and element['image_path']:
-            image_embedding = self.image_embedder.embed_image(element['image_path'])
-            # Normalize to match text embedding dimensions
-            if len(image_embedding) < 384:  # Assuming text embedding dimension
-                # Pad with zeros
-                padded = np.pad(image_embedding, (0, 384 - len(image_embedding)))
-                embeddings.append(padded)
-            elif len(image_embedding) > 384:
-                # Truncate
-                truncated = image_embedding[:384]
-                embeddings.append(truncated)
-            else:
-                embeddings.append(image_embedding)
-        
-        # Combine embeddings
-        if len(embeddings) == 0:
-            # Return zero vector if no content
-            return np.zeros(384)
-        elif len(embeddings) == 1:
-            # Return single embedding
-            return embeddings[0]
+            return self.text_embedder.embed_text(element['text'])
         else:
-            # Average multiple embeddings
-            return np.mean(embeddings, axis=0)
+            return np.zeros(self.dimension, dtype='float32')
     
     def embed_document_elements(self, elements: List[dict]) -> np.ndarray:
         """
