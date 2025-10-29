@@ -63,7 +63,7 @@ def generate_legal_response(user_message: str, chat_id: str) -> tuple:
             processed_message = user_message
         
         # Retrieve relevant context using hybrid retrieval
-        search_results = hybrid_retriever.retrieve(processed_message, limit=5)
+        search_results = hybrid_retriever.retrieve(processed_message, top_k=5)
         
         # Build context from search results
         context = ""
@@ -136,8 +136,26 @@ def _get_fallback_response(query: str) -> str:
     elif "compliance" in query_lower:
         return "MSME compliance requirements vary by industry. Common requirements include GST registration, Shops & Establishments registration, professional tax registration, and annual filings. Manufacturing units may need additional licenses like factory licenses."
     
+    elif "finance" in query_lower or "loan" in query_lower or "credit" in query_lower:
+        return "MSMEs can access various financing options including bank loans, government schemes, and alternative financing. Key government schemes include MUDRA Yojana (loans up to ₹10 lakh), CGTMSE (credit guarantee), and SIDBI initiatives. The MSME Samadhaan portal helps with delayed payment issues."
+    
+    elif "registration" in query_lower or "udyog aadhar" in query_lower:
+        return "MSME registration is done through the Udyam Registration portal (udyamregistration.gov.in). Benefits include lower interest rates on loans, tax incentives, electricity tariff subsidies, and easier access to government tenders. The registration is based on Aadhaar and is free of cost."
+    
+    elif "tax" in query_lower or "income tax" in query_lower:
+        return "MSMEs can opt for presumptive taxation under Section 44AD (8% of turnover) if turnover is less than ₹2 crores. Regular taxation applies for higher turnovers with deductions for business expenses. MSMEs can also claim deductions under Section 80JJAA for new employee hiring."
+    
+    elif "contract" in query_lower or "agreement" in query_lower:
+        return "Essential contracts for MSMEs include employment agreements, vendor/supplier contracts, client agreements, and partnership deeds. Key elements include scope of work, payment terms, delivery timelines, dispute resolution mechanisms, and termination clauses. Always have legal review for significant contracts."
+    
+    elif "insurance" in query_lower:
+        return "Important insurance for MSMEs include:\n1. General Liability Insurance\n2. Property Insurance\n3. Professional Liability Insurance\n4. Workers' Compensation\n5. Cyber Insurance\n6. Directors and Officers (D&O) Insurance\nGovernment schemes like PMJJBY and PMSBY provide affordable life insurance."
+    
+    elif "export" in query_lower or "import" in query_lower:
+        return "MSMEs engaged in export/import must comply with FEMA regulations, obtain IEC code, and follow customs procedures. Benefits include duty drawbacks, export promotion capital goods scheme, and focus market scheme. EPCG scheme allows import of capital goods at concessional rates."
+    
     else:
-        return "I'm currently unable to generate a detailed response. Please try rephrasing your question or ask about specific MSME legal topics like GST, compliance, labor laws, or intellectual property."
+        return "I'm currently unable to generate a detailed response. Please try rephrasing your question or ask about specific MSME legal topics like:\n- MSME definition and classification\n- GST registration and compliance\n- Labour laws and employee contracts\n- Intellectual property protection\n- Business registration (Udyam/Udyog Aadhar)\n- Finance and loan options\n- Tax obligations and benefits\n- Export/import regulations\n- Insurance requirements\n- Startup India benefits"
 
 @router.post("/message", response_model=ChatResponse)
 async def chat_message(chat_message: ChatMessage):
