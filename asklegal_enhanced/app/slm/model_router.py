@@ -1,5 +1,8 @@
 from typing import Dict, Any, Tuple, Optional
 from app.slm.engine import inference_engine
+from app.msme.context.workflow import context_collector
+from app.msme.knowledge_base.industry_taxonomy import industry_taxonomy
+from app.slm.prompts.msme_legal_prompt import MSME_LEGAL_PROMPT_TEMPLATE, MSME_FALLBACK_PROMPT
 import os
 import requests
 from enum import Enum
@@ -10,7 +13,7 @@ class ModelType(Enum):
     LLM = "llm"  # Large Language Model (server)
 
 class ModelRouter:
-    """Model router that selects appropriate model based on query complexity"""
+    """Model router that selects appropriate model based on query complexity and MSME context"""
     
     def __init__(self):
         # Server LLM endpoint (would be configured in production)
@@ -27,24 +30,42 @@ class ModelRouter:
             "contract", "litigation", "compliance", "regulation", "jurisdiction",
             "precedent", "statute", "tort", "liability", "damages"
         ]
+        # MSME-specific keywords that should trigger SLM for domain expertise
+        self.msme_keywords = [
+            "msme", "udyam", "udyog aadhar", "micro enterprise", "small enterprise", 
+            "medium enterprise", "gst", "mudra", "startup india", "sidbi",
+            "labour law", "employee contract", "vendor agreement", "ip protection",
+            "registration", "license", "tax", "loan", "credit", "insurance",
+            "export", "import", "manufacturing", "retail", "services", "technology",
+            "healthcare", "proprietary", "partnership", "llp", "private limited"
+        ]
     
-    def route_query(self, query: str, context: str = "") -> Tuple[ModelType, str]:
+    def route_query(self, query: str, context: str = "", user_id: str = "") -> Tuple[ModelType, str]:
         """
-        Route query to appropriate model based on complexity
+        Route query to appropriate model based on complexity and MSME context
         
         Args:
             query (str): User query
             context (str): Additional context
+            user_id (str): User identifier for MSME context
             
         Returns:
             Tuple[ModelType, str]: (model_type, reasoning)
         """
         complexity_score = self._calculate_complexity(query, context)
+        msme_relevance = self._calculate_msme_relevance(query, user_id)
         
-        if complexity_score > 0.7:
+        # If query is highly relevant to MSME domain, prefer SLM for domain expertise
+        if msme_relevance > 0.7:
+            return ModelType.SLM, f"High MSME relevance ({msme_relevance:.2f}), routing to SLM for domain expertise"
+        elif complexity_score > 0.7:
             return ModelType.LLM, f"High complexity score ({complexity_score:.2f}), routing to LLM"
         elif complexity_score > 0.4:
-            return ModelType.LLM, f"Medium complexity score ({complexity_score:.2f}), routing to LLM for better reasoning"
+            # For medium complexity, consider MSME relevance
+            if msme_relevance > 0.5:
+                return ModelType.SLM, f"Medium complexity with MSME relevance, routing to SLM for domain expertise"
+            else:
+                return ModelType.LLM, f"Medium complexity score ({complexity_score:.2f}), routing to LLM for better reasoning"
         else:
             return ModelType.SLM, f"Low complexity score ({complexity_score:.2f}), routing to SLM for efficiency"
     
@@ -83,7 +104,47 @@ class ModelRouter:
         
         return min(score, 1.0)
     
-    def generate_response(self, query: str, context: str = "", model_preference: Optional[ModelType] = None) -> str:
+    def _calculate_msme_relevance(self, query: str, user_id: str) -> float:
+        """
+        Calculate MSME relevance score (0.0 to 1.0)
+        
+        Args:
+            query (str): User query
+            user_id (str): User identifier
+            
+        Returns:
+            float: MSME relevance score
+        """
+        score = 0.0
+        query_lower = query.lower()
+        
+        # Check for MSME keywords (0.6 weight)
+        msme_matches = sum(1 for keyword in self.msme_keywords if keyword in query_lower)
+        msme_factor = min(msme_matches / 3.0, 1.0)  # Max 3 keywords
+        score += msme_factor * 0.6
+        
+        # Check user's business context (0.4 weight)
+        if user_id:
+            business_context = context_collector.get_context_for_user(user_id)
+            if business_context:
+                # Industry-specific relevance
+                industry = business_context.get("industry", "").lower()
+                if industry and industry in query_lower:
+                    score += 0.2
+                
+                # Business size relevance
+                business_size = business_context.get("business_size", "").lower()
+                if business_size and business_size in query_lower:
+                    score += 0.1
+                
+                # Legal structure relevance
+                legal_structure = business_context.get("legal_structure", "").lower()
+                if legal_structure and legal_structure in query_lower:
+                    score += 0.1
+        
+        return min(score, 1.0)
+    
+    def generate_response(self, query: str, context: str = "", model_preference: Optional[ModelType] = None, user_id: str = "") -> str:
         """
         Generate response using appropriate model
         
@@ -91,6 +152,7 @@ class ModelRouter:
             query (str): User query
             context (str): Additional context
             model_preference (ModelType, optional): Preferred model type
+            user_id (str): User identifier for MSME context
             
         Returns:
             str: Generated response
@@ -100,52 +162,71 @@ class ModelRouter:
             model_type = model_preference
             reasoning = f"Using preferred model: {model_type.value}"
         else:
-            model_type, reasoning = self.route_query(query, context)
+            model_type, reasoning = self.route_query(query, context, user_id)
         
         print(f"Model routing: {reasoning}")
         
         if model_type == ModelType.LLM:
             return self._generate_with_llm(query, context)
         else:
-            return self._generate_with_slm(query, context)
+            return self._generate_with_slm(query, context, user_id)
     
-    def _generate_with_slm(self, query: str, context: str) -> str:
+    def _generate_with_slm(self, query: str, context: str, user_id: str = "") -> str:
         """
-        Generate response using local SLM
+        Generate response using local SLM with MSME context and specialized prompts
         
         Args:
             query (str): User query
             context (str): Additional context
+            user_id (str): User identifier for MSME context
             
         Returns:
             str: Generated response
         """
-        prompt = f"""You are an AI Legal Assistant specializing in MSME legal matters in India.
+        # Get MSME context if user_id is provided
+        msme_context = ""
+        if user_id:
+            business_context = context_collector.get_context_for_user(user_id)
+            industry_insights = context_collector.get_industry_insights(user_id)
+            
+            if business_context:
+                msme_context += f"Business Context:\n"
+                msme_context += f"- Industry: {business_context.get('industry', 'N/A')}\n"
+                msme_context += f"- Business Size: {business_context.get('business_size', 'N/A')}\n"
+                msme_context += f"- Legal Structure: {business_context.get('legal_structure', 'N/A')}\n"
+                msme_context += f"- Location: {business_context.get('location', 'N/A')}\n"
+                msme_context += f"- Employee Count: {business_context.get('employee_count', 'N/A')}\n"
+                
+                if industry_insights:
+                    msme_context += f"\nIndustry Insights:\n"
+                    msme_context += f"- Legal Requirements: {', '.join(industry_insights.get('legal_requirements', []))}\n"
+                    msme_context += f"- Common Issues: {', '.join(industry_insights.get('common_issues', []))}\n"
         
-Context: {context}
-
-Query: {query}
-
-Provide a detailed, accurate response based on the context and your knowledge of Indian MSME laws and regulations. If you don't have specific information, provide general guidance related to MSME legal matters.
-"""
+        # Use specialized MSME prompt template
+        prompt = MSME_LEGAL_PROMPT_TEMPLATE.format(
+            msme_context=msme_context,
+            context=context,
+            query=query
+        )
         
         try:
             response = inference_engine.generate(prompt)
             # If we get an empty or error response, provide a more helpful fallback
             if not response or "Error:" in response or response.strip() == "":
-                return self._get_contextual_fallback(query, context)
+                return self._get_contextual_fallback(query, context, msme_context)
             return response
         except Exception as e:
             print(f"Error with SLM: {e}")
-            return self._get_contextual_fallback(query, context)
+            return self._get_contextual_fallback(query, context, msme_context)
     
-    def _get_contextual_fallback(self, query: str, context: str) -> str:
+    def _get_contextual_fallback(self, query: str, context: str, msme_context: str = "") -> str:
         """
         Provide contextual fallback responses when SLM fails
         
         Args:
             query (str): User query
             context (str): Available context
+            msme_context (str): MSME-specific context
             
         Returns:
             str: Contextual fallback response
@@ -155,8 +236,16 @@ Provide a detailed, accurate response based on the context and your knowledge of
             # If we have specific context, provide a response based on it
             return f"Based on the legal information available, here's what I can tell you about your query:\n\n{query}\n\nRelevant legal context:\n{context[:500]}...\n\nFor specific legal advice, please consult with a qualified legal professional."
         else:
-            # Generic fallback
-            return f"I can help you with MSME legal matters in India. Your query: '{query}' relates to business law. While I don't have specific information on this topic right now, I can assist with common MSME legal issues such as business registration, compliance, taxation, labor laws, and intellectual property. Please ask more specific questions about these topics."
+            # Generic fallback with MSME focus using specialized prompt
+            fallback_prompt = MSME_FALLBACK_PROMPT.format(query=query)
+            try:
+                response = inference_engine.generate(fallback_prompt)
+                if response and not ("Error:" in response or response.strip() == ""):
+                    return response
+            except:
+                pass
+            # Final fallback
+            return f"I specialize in helping MSMEs with legal matters in India. Your query: '{query}' relates to business law. I can assist with common MSME legal issues such as:\n- Business registration (Udyam, GST)\n- Compliance requirements\n- Employment and labor laws\n- Contract drafting\n- Intellectual property protection\n- Tax obligations\n- Access to finance\n- Export-import regulations\n\nPlease ask more specific questions about these topics, and I'll provide detailed guidance."
     
     def _generate_with_llm(self, query: str, context: str) -> str:
         """

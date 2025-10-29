@@ -39,12 +39,13 @@ legal_knowledge = load_legal_knowledge()
 class ChatMessage(BaseModel):
     message: str
     chat_id: str
+    user_id: Optional[str] = None  # Add user_id for MSME context
 
 class ChatResponse(BaseModel):
     response: str
     source: str
 
-def generate_legal_response(user_message: str, chat_id: str) -> tuple:
+def generate_legal_response(user_message: str, chat_id: str, user_id: Optional[str] = None) -> tuple:
     """
     Generate a legal response based on user message using enhanced RAG and model routing
     """
@@ -89,8 +90,10 @@ def generate_legal_response(user_message: str, chat_id: str) -> tuple:
         Keep your response focused on MSME legal matters and avoid speculation.
         """
         
-        # Generate response using model router (SLM + RAG)
-        response = model_router.generate_response(processed_message, context)
+        # Generate response using model router (SLM + RAG) with MSME context
+        # Convert None user_id to empty string to match function signature
+        router_user_id = user_id if user_id is not None else ""
+        response = model_router.generate_response(processed_message, context, user_id=router_user_id)
         
         # If we get an error response, provide a fallback
         if not response or "Error:" in response or response.strip() == "":
@@ -122,7 +125,7 @@ def _get_fallback_response(query: str) -> str:
         return "MSME stands for Micro, Small, and Medium Enterprises. In India, MSMEs are classified based on investment in plant and machinery/equipment and annual turnover:\n\nMicro Enterprise: Investment up to ₹1 crore and turnover up to ₹5 crore\nSmall Enterprise: Investment up to ₹10 crore and turnover up to ₹50 crore\nMedium Enterprise: Investment up to ₹50 crore and turnover up to ₹250 crore\n\nMSMEs play a crucial role in the Indian economy, contributing significantly to GDP, employment, and exports."
     
     elif "gst" in query_lower:
-        return "Goods and Services Tax (GST) is a comprehensive indirect tax levied on the supply of goods and services in India. MSMEs with turnover exceeding ₹40 lakhs (₹10 lakhs for Northeastern states) must register for GST. Benefits for MSMEs include composition scheme (lower tax rates) and delayed payment provisions."
+        return "Goods and Services Tax (GST) is a comprehensive indirect tax levied on the supply of goods and services in India. MSMEs with turnover exceeding ₹40 lakhs (₹10 lakhs for Northeastern states) must register for GST. Benefits for MSMEs include tax exemptions (3 years), delayed payment provisions, and easier access to government tenders."
     
     elif "startup" in query_lower and "india" in query_lower:
         return "Startup India is a government initiative to build a strong ecosystem for nurturing innovation and startups. Eligible startups can avail benefits like tax exemptions (3 years), simplified compliance, access to funds, incubation centers, and IPR facilitation. MSMEs can also register as startups if they meet the criteria."
@@ -131,28 +134,28 @@ def _get_fallback_response(query: str) -> str:
         return "MSMEs must comply with various labour laws including Factories Act, Minimum Wages Act, ESIC, PF, and Shops & Establishments Act. Recent reforms have simplified compliance through the Shram Suvidha Portal. Businesses with more than 20 employees must have formal contracts and maintain statutory registers."
     
     elif "ip" in query_lower or "intellectual property" in query_lower:
-        return "Intellectual Property protection includes trademarks, copyrights, and patents. MSMEs should register their brand names, logos, and innovations. Copyright automatically protects original works, while trademarks and patents require registration."
+        return "Intellectual Property protection includes trademarks, copyrights, and patents. MSMEs should register their brand names, logos, and innovations. Copyright automatically protects original works, while trademarks and patents require registration. The government provides subsidies for IP filing for MSMEs."
     
     elif "compliance" in query_lower:
-        return "MSME compliance requirements vary by industry. Common requirements include GST registration, Shops & Establishments registration, professional tax registration, and annual filings. Manufacturing units may need additional licenses like factory licenses."
+        return "MSME compliance requirements vary by industry. Common requirements include GST registration, Shops & Establishments registration, professional tax registration, and annual filings. Manufacturing units may need additional licenses like factory licenses. The Udyam registration provides a single reference number for multiple compliances."
     
     elif "finance" in query_lower or "loan" in query_lower or "credit" in query_lower:
-        return "MSMEs can access various financing options including bank loans, government schemes, and alternative financing. Key government schemes include MUDRA Yojana (loans up to ₹10 lakh), CGTMSE (credit guarantee), and SIDBI initiatives. The MSME Samadhaan portal helps with delayed payment issues."
+        return "MSMEs can access various financing options including bank loans, government schemes, and alternative financing. Key government schemes include MUDRA Yojana (loans up to ₹10 lakh), CGTMSE (credit guarantee), and SIDBI initiatives. The MSME Samadhaan portal helps with delayed payment issues. Collateral-free loans are available under certain schemes."
     
     elif "registration" in query_lower or "udyog aadhar" in query_lower:
-        return "MSME registration is done through the Udyam Registration portal (udyamregistration.gov.in). Benefits include lower interest rates on loans, tax incentives, electricity tariff subsidies, and easier access to government tenders. The registration is based on Aadhaar and is free of cost."
+        return "MSME registration is done through the Udyam Registration portal (udyamregistration.gov.in). Benefits include lower interest rates on loans, tax incentives, electricity tariff subsidies, and easier access to government tenders. The registration is based on Aadhaar and is free of cost. Udyam registration replaced the earlier Udyog Aadhar system."
     
     elif "tax" in query_lower or "income tax" in query_lower:
-        return "MSMEs can opt for presumptive taxation under Section 44AD (8% of turnover) if turnover is less than ₹2 crores. Regular taxation applies for higher turnovers with deductions for business expenses. MSMEs can also claim deductions under Section 80JJAA for new employee hiring."
+        return "MSMEs can opt for presumptive taxation under Section 44AD (8% of turnover) if turnover is less than ₹2 crores. Regular taxation applies for higher turnovers with deductions for business expenses. MSMEs can also claim deductions under Section 80JJAA for new employee hiring. The government provides tax holidays and exemptions for eligible MSMEs."
     
     elif "contract" in query_lower or "agreement" in query_lower:
-        return "Essential contracts for MSMEs include employment agreements, vendor/supplier contracts, client agreements, and partnership deeds. Key elements include scope of work, payment terms, delivery timelines, dispute resolution mechanisms, and termination clauses. Always have legal review for significant contracts."
+        return "Essential contracts for MSMEs include employment agreements, vendor/supplier contracts, client agreements, and partnership deeds. Key elements include scope of work, payment terms, delivery timelines, dispute resolution mechanisms, and termination clauses. Always have legal review for significant contracts. Standard templates are available for common MSME agreements."
     
     elif "insurance" in query_lower:
-        return "Important insurance for MSMEs include:\n1. General Liability Insurance\n2. Property Insurance\n3. Professional Liability Insurance\n4. Workers' Compensation\n5. Cyber Insurance\n6. Directors and Officers (D&O) Insurance\nGovernment schemes like PMJJBY and PMSBY provide affordable life insurance."
+        return "Important insurance for MSMEs include:\n1. General Liability Insurance\n2. Property Insurance\n3. Professional Liability Insurance\n4. Workers' Compensation\n5. Cyber Insurance\n6. Directors and Officers (D&O) Insurance\nGovernment schemes like PMJJBY and PMSBY provide affordable life insurance. MSMEs in certain sectors may require specific insurance coverage as mandated by law."
     
     elif "export" in query_lower or "import" in query_lower:
-        return "MSMEs engaged in export/import must comply with FEMA regulations, obtain IEC code, and follow customs procedures. Benefits include duty drawbacks, export promotion capital goods scheme, and focus market scheme. EPCG scheme allows import of capital goods at concessional rates."
+        return "MSMEs engaged in export/import must comply with FEMA regulations, obtain IEC code, and follow customs procedures. Benefits include duty drawbacks, export promotion capital goods scheme, and focus market scheme. EPCG scheme allows import of capital goods at concessional rates. The government provides export incentives and market access support for MSMEs."
     
     else:
         return "I'm currently unable to generate a detailed response. Please try rephrasing your question or ask about specific MSME legal topics like:\n- MSME definition and classification\n- GST registration and compliance\n- Labour laws and employee contracts\n- Intellectual property protection\n- Business registration (Udyam/Udyog Aadhar)\n- Finance and loan options\n- Tax obligations and benefits\n- Export/import regulations\n- Insurance requirements\n- Startup India benefits"
@@ -163,8 +166,12 @@ async def chat_message(chat_message: ChatMessage):
     Handle chat messages and generate legal responses
     """
     try:
-        # Generate response
-        response_text, source = generate_legal_response(chat_message.message, chat_message.chat_id)
+        # Generate response with user_id for MSME context
+        response_text, source = generate_legal_response(
+            chat_message.message, 
+            chat_message.chat_id, 
+            chat_message.user_id
+        )
         
         # Store in chat history
         if chat_message.chat_id not in chat_storage:

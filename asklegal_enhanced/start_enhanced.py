@@ -86,7 +86,7 @@ def check_frontend():
         print("  Note: You can build with: cd frontend && npm run build")
         return True
 
-def start_backend(port=8001, dev_mode=True):
+def start_backend(port=8007, dev_mode=True):
     """Start the FastAPI backend server"""
     print(f"\n🚀 Starting backend server on port {port}...")
     
