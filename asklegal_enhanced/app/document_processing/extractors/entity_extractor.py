@@ -1,21 +1,16 @@
-import spacy
 from typing import List, Dict, Any
 import re
 
 class LegalEntityExtractor:
-    """Legal entity extractor using spaCy and rule-based patterns"""
+    """Simplified legal entity extractor using rule-based patterns"""
     
     def __init__(self):
-        # Load spaCy model (this would need to be downloaded separately)
-        try:
-            self.nlp = spacy.load("en_core_web_sm")
-        except OSError:
-            print("Warning: spaCy model not found. Please install with: python -m spacy download en_core_web_sm")
-            self.nlp = None
+        # No external dependencies needed
+        print("Initialized simplified entity extractor (rule-based only)")
     
     def extract_entities(self, text: str) -> List[Dict[str, Any]]:
         """
-        Extract legal entities from text
+        Extract legal entities from text using rule-based patterns
         
         Args:
             text (str): Text to analyze
@@ -28,21 +23,6 @@ class LegalEntityExtractor:
         # Rule-based extraction for legal-specific entities
         legal_entities = self._extract_legal_entities(text)
         entities.extend(legal_entities)
-        
-        # spaCy NER if available
-        if self.nlp:
-            try:
-                doc = self.nlp(text)
-                for ent in doc.ents:
-                    entities.append({
-                        "text": ent.text,
-                        "label": ent.label_,
-                        "start": ent.start_char,
-                        "end": ent.end_char,
-                        "description": self._get_entity_description(ent.label_)
-                    })
-            except Exception as e:
-                print(f"spaCy NER failed: {e}")
         
         return entities
     
