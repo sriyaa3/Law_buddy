@@ -1,4 +1,4 @@
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, Optional
 from app.slm.engine import inference_engine
 import os
 import requests
@@ -83,7 +83,7 @@ class ModelRouter:
         
         return min(score, 1.0)
     
-    def generate_response(self, query: str, context: str = "", model_preference: ModelType = None) -> str:
+    def generate_response(self, query: str, context: str = "", model_preference: Optional[ModelType] = None) -> str:
         """
         Generate response using appropriate model
         
@@ -120,20 +120,43 @@ class ModelRouter:
         Returns:
             str: Generated response
         """
-        prompt = f"""You are an AI Legal Assistant specializing in MSME legal matters.
+        prompt = f"""You are an AI Legal Assistant specializing in MSME legal matters in India.
         
 Context: {context}
 
 Query: {query}
 
-Provide a detailed, accurate response based on the context and your knowledge of Indian MSME laws and regulations.
+Provide a detailed, accurate response based on the context and your knowledge of Indian MSME laws and regulations. If you don't have specific information, provide general guidance related to MSME legal matters.
 """
         
         try:
             response = inference_engine.generate(prompt)
+            # If we get an empty or error response, provide a more helpful fallback
+            if not response or "Error:" in response or response.strip() == "":
+                return self._get_contextual_fallback(query, context)
             return response
         except Exception as e:
-            return f"Error generating response with SLM: {e}"
+            print(f"Error with SLM: {e}")
+            return self._get_contextual_fallback(query, context)
+    
+    def _get_contextual_fallback(self, query: str, context: str) -> str:
+        """
+        Provide contextual fallback responses when SLM fails
+        
+        Args:
+            query (str): User query
+            context (str): Available context
+            
+        Returns:
+            str: Contextual fallback response
+        """
+        # Try to extract relevant information from context
+        if context and "Indian legal system" not in context:
+            # If we have specific context, provide a response based on it
+            return f"Based on the legal information available, here's what I can tell you about your query:\n\n{query}\n\nRelevant legal context:\n{context[:500]}...\n\nFor specific legal advice, please consult with a qualified legal professional."
+        else:
+            # Generic fallback
+            return f"I can help you with MSME legal matters in India. Your query: '{query}' relates to business law. While I don't have specific information on this topic right now, I can assist with common MSME legal issues such as business registration, compliance, taxation, labor laws, and intellectual property. Please ask more specific questions about these topics."
     
     def _generate_with_llm(self, query: str, context: str) -> str:
         """

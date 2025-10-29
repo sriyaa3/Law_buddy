@@ -64,7 +64,7 @@ class HybridRetriever:
                 for i, (dist, idx) in enumerate(zip(distances[0], indices[0])):
                     if idx < len(self.documents):
                         results.append({
-                            'text': self.documents[idx],
+                            'content': self.documents[idx],
                             'score': float(1 / (1 + dist)),  # Convert distance to similarity score
                             'rank': i + 1
                         })
@@ -77,7 +77,7 @@ class HybridRetriever:
             for doc in self.documents[:top_k]:
                 if any(word in doc.lower() for word in query_lower.split()):
                     results.append({
-                        'text': doc,
+                        'content': doc,
                         'score': 0.5,
                         'rank': len(results) + 1
                     })
@@ -85,7 +85,7 @@ class HybridRetriever:
         # Fallback: return generic legal response context
         if not results:
             results = [{
-                'text': 'Indian legal system information available. Please ask specific questions about IPC, CPC, CrPC, or other legal acts.',
+                'content': 'Indian legal system information available. Please ask specific questions about IPC, CPC, CrPC, or other legal acts.',
                 'score': 0.3,
                 'rank': 1
             }]
@@ -109,7 +109,7 @@ class HybridRetriever:
         current_length = 0
         
         for result in results:
-            text = result['text']
+            text = result['content']
             if current_length + len(text) <= max_length:
                 context_parts.append(text)
                 current_length += len(text)

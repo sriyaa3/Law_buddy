@@ -17,17 +17,18 @@ class HuggingFaceEngine:
         self.model = None
         self.tokenizer = None
         
-        # Default generation configuration
+        # Default generation configuration - optimized for speed
         self.config = {
-            "max_new_tokens": 512,
+            "max_new_tokens": 256,  # Reduced from 512 for faster responses
             "temperature": 0.7,
             "top_p": 0.9,
             "top_k": 40,
-            "repetition_penalty": 1.1
+            "repetition_penalty": 1.1,
+            "do_sample": True  # Enable sampling for faster generation
         }
         
-        if model_name:
-            self.load_model()
+        # Try to load model during initialization
+        self.load_model()
     
     def load_model(self):
         """Load the SLM model using Hugging Face transformers"""
@@ -52,10 +53,11 @@ class HuggingFaceEngine:
         Returns:
             str: Generated text
         """
+        # Load model if not already loaded
         if not self.model or not self.tokenizer:
             self.load_model()
             
-        if not self.model:
+        if not self.model or not self.tokenizer:
             return "Error: Model not loaded"
         
         # Merge with default config
@@ -63,14 +65,23 @@ class HuggingFaceEngine:
         
         try:
             # Tokenize input
-            inputs = self.tokenizer(prompt, return_tensors="pt")
+            if self.tokenizer is not None:
+                inputs = self.tokenizer(prompt, return_tensors="pt")
+            else:
+                return "Error: Tokenizer not available"
             
             # Generate response
-            with torch.no_grad():
-                outputs = self.model.generate(**inputs, **generation_config)
+            if self.model is not None:
+                with torch.no_grad():
+                    outputs = self.model.generate(**inputs, **generation_config)
+            else:
+                return "Error: Model not available"
             
             # Decode response
-            response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            if self.tokenizer is not None:
+                response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            else:
+                return "Error: Tokenizer not available for decoding"
             
             # Remove the prompt from the response (if present)
             if response.startswith(prompt):

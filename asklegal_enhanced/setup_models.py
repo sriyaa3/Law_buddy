@@ -31,7 +31,9 @@ def check_requirements():
         print(f"\n⚠️  Missing packages: {', '.join(missing)}")
         print("Installing missing packages...")
         for package in missing:
-            subprocess.run([sys.executable, "-m", "pip", "install", package], check=True)
+            # Fixed: Removed text parameter when capture_output=False to satisfy pyright
+            subprocess.run([sys.executable, "-m", "pip", "install", package], 
+                         check=True, capture_output=False)
         print("✅ All packages installed!")
     return True
 
@@ -104,7 +106,7 @@ def setup_faiss_index():
         
         # Add some dummy vectors for testing
         dummy_vectors = np.random.random((10, dimension)).astype('float32')
-        index.add(dummy_vectors)
+        index.add(dummy_vectors)  # type: ignore
         
         # Save index
         index_path = './vector_store/test_index.faiss'

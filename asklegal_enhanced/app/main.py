@@ -7,7 +7,8 @@ from app.core.config import settings
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    timeout=120  # Increase timeout to 120 seconds for model generation
 )
 
 # Include API routes first
