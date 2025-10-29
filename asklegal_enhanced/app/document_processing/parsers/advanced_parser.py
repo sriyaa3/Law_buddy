@@ -12,7 +12,7 @@ class AdvancedDocumentParser:
     
     def parse_pdf(self, file_path: str) -> List[Dict[str, Any]]:
         """
-        Parse PDF with layout awareness and clause detection
+        Parse PDF using basic PyPDF2
         
         Args:
             file_path (str): Path to the PDF file
@@ -23,36 +23,27 @@ class AdvancedDocumentParser:
         elements = []
         
         try:
-            # Try using pdfplumber first
-            with pdfplumber.open(file_path) as pdf:
-                for page_num, page in enumerate(pdf.pages):
-                    # Extract text
-                    text = page.extract_text()
-                    
-                    if text.strip():
-                        element = {
-                            "id": f"page_{page_num}",
-                            "text": text,
-                            "type": "page",
-                            "metadata": {
-                                "page_number": page_num + 1
-                            }
+            reader = PdfReader(file_path)
+            
+            for page_num, page in enumerate(reader.pages):
+                text = page.extract_text()
+                
+                if text.strip():
+                    element = {
+                        "id": f"page_{page_num}",
+                        "text": text,
+                        "type": "page",
+                        "metadata": {
+                            "page_number": page_num + 1
                         }
-                        
-                        # Detect clauses
-                        element["clauses"] = self._detect_clauses(text)
-                        elements.append(element)
+                    }
+                    
+                    # Detect clauses
+                    element["clauses"] = self._detect_clauses(text)
+                    elements.append(element)
                 
         except Exception as e:
             print(f"PDF parsing failed: {e}")
-            
-            # Fallback to basic text extraction
-            try:
-                with open(file_path, 'rb') as f:
-                    # This is a very basic fallback, in practice you'd want a better approach
-                    print("Using basic PDF text extraction as fallback")
-            except Exception as fallback_error:
-                print(f"Fallback PDF parsing also failed: {fallback_error}")
         
         return elements
     
