@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  asklegal_backend:
+    build: .
+    container_name: asklegal_backend
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+      - ./asklegal.db:/app/asklegal.db
+    environment:
+      - PROJECT_NAME=AskLegal Enhanced
+      - DATABASE_URL=sqlite:///./asklegal.db
+      - MODEL_PATH=./models
+      - UPLOAD_DIR=./uploads
+      - DATA_DIR=./data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Optional: Redis for caching (commented out by default)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: asklegal_redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   restart: unless-stopped
+
+  # Optional: Neo4j for graph database (commented out by default)
+  # neo4j:
+  #   image: neo4j:5
+  #   container_name: asklegal_neo4j
+  #   ports:
+  #     - "7474:7474"
+  #     - "7687:7687"
+  #   environment:
+  #     - NEO4J_AUTH=neo4j/password
+  #   volumes:
+  #     - neo4j_data:/data
+  #   restart: unless-stopped
+
+volumes:
+  redis_data:
+  neo4j_data:
+
+networks:
+  default:
+    name: asklegal_network
