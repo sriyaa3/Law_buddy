@@ -1,114 +1,23 @@
-from sentence_transformers import SentenceTransformer
-from PIL import Image
 import numpy as np
 from typing import List, Union
-import torch
-from transformers import AutoTokenizer, AutoModel
-import os
-
-class InLegalBertEmbedder:
-    """InLegalBERT embedder for legal documents"""
-    
-    def __init__(self, model_name: str = "law-ai/InLegalBERT"):
-        """
-        Initialize the InLegalBERT embedder
-        
-        Args:
-            model_name (str): Name of the InLegalBERT model to use
-        """
-        self.model_name = model_name
-        self.model = None
-        self.tokenizer = None
-        
-        # Try to load the model
-        try:
-            print(f"Attempting to load InLegalBERT model: {model_name}")
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-            self.model = AutoModel.from_pretrained(model_name)
-            self.model.eval()
-            print(f"Successfully loaded InLegalBERT model: {model_name}")
-        except Exception as e:
-            print(f"Warning: Could not load InLegalBERT model {model_name}: {e}")
-            print("Falling back to sentence-transformers/all-MiniLM-L6-v2")
-            # Fallback to sentence transformer
-            self.fallback_embedder = SentenceTransformer("all-MiniLM-L6-v2")
-    
-    def embed_text(self, text: str) -> np.ndarray:
-        """
-        Generate embedding for a text string using InLegalBERT
-        
-        Args:
-            text (str): Input text
-            
-        Returns:
-            np.ndarray: Text embedding vector
-        """
-        if self.model and self.tokenizer:
-            try:
-                # Tokenize input
-                inputs = self.tokenizer(text, return_tensors="pt", truncation=True, max_length=512, padding=True)
-                
-                # Get embeddings
-                with torch.no_grad():
-                    outputs = self.model(**inputs)
-                    # Use CLS token embedding
-                    embeddings = outputs.last_hidden_state[:, 0, :].numpy()
-                
-                return embeddings.flatten()
-            except Exception as e:
-                print(f"Error generating InLegalBERT embedding: {e}")
-                # Fallback to sentence transformer
-                return self.fallback_embedder.encode(text)
-        else:
-            # Use fallback embedder
-            return self.fallback_embedder.encode(text)
-    
-    def embed_texts(self, texts: List[str]) -> np.ndarray:
-        """
-        Generate embeddings for a list of text strings
-        
-        Args:
-            texts (List[str]): List of input texts
-            
-        Returns:
-            np.ndarray: Text embedding vectors
-        """
-        if self.model and self.tokenizer:
-            try:
-                embeddings = []
-                for text in texts:
-                    embedding = self.embed_text(text)
-                    embeddings.append(embedding)
-                return np.array(embeddings)
-            except Exception as e:
-                print(f"Error generating InLegalBERT embeddings: {e}")
-                # Fallback to sentence transformer
-                return self.fallback_embedder.encode(texts)
-        else:
-            # Use fallback embedder
-            return self.fallback_embedder.encode(texts)
 
 class TextEmbedder:
-    """Text embedding service using InLegalBERT for legal documents"""
+    """Simplified text embedder without external model dependencies"""
     
-    def __init__(self, model_name: str = "law-ai/InLegalBERT"):
+    def __init__(self, model_name: str = "simplified"):
         """
         Initialize the text embedder
         
         Args:
-            model_name (str): Name of the sentence transformer model to use
+            model_name (str): Model identifier (not used in simplified version)
         """
         self.model_name = model_name
-        # Initialize with fallback model to avoid loading issues
-        try:
-            self.inlegalbert = InLegalBertEmbedder(model_name)
-        except Exception as e:
-            print(f"Error initializing InLegalBERT, using fallback: {e}")
-            self.inlegalbert = SentenceTransformer("all-MiniLM-L6-v2")
+        self.dimension = 384  # Standard embedding dimension
+        print("Initialized simplified text embedder (no model required)")
     
     def embed_text(self, text: str) -> np.ndarray:
         """
-        Generate embedding for a text string
+        Generate simple hash-based embedding for a text string
         
         Args:
             text (str): Input text
@@ -116,11 +25,15 @@ class TextEmbedder:
         Returns:
             np.ndarray: Text embedding vector
         """
-        if isinstance(self.inlegalbert, InLegalBertEmbedder):
-            return self.inlegalbert.embed_text(text)
-        else:
-            # Fallback embedder
-            return self.inlegalbert.encode(text)
+        # Simple hash-based embedding for demonstration
+        # In production, you would use proper embeddings
+        hash_value = hash(text)
+        # Create a deterministic vector from the hash
+        np.random.seed(abs(hash_value) % (2**32))
+        embedding = np.random.rand(self.dimension).astype('float32')
+        # Normalize
+        embedding = embedding / np.linalg.norm(embedding)
+        return embedding
     
     def embed_texts(self, texts: List[str]) -> np.ndarray:
         """
@@ -132,11 +45,10 @@ class TextEmbedder:
         Returns:
             np.ndarray: Text embedding vectors
         """
-        if isinstance(self.inlegalbert, InLegalBertEmbedder):
-            return self.inlegalbert.embed_texts(texts)
-        else:
-            # Fallback embedder
-            return self.inlegalbert.encode(texts)
+        embeddings = []
+        for text in texts:
+            embeddings.append(self.embed_text(text))
+        return np.array(embeddings)
 
 class ImageEmbedder:
     """Image embedding service (simplified implementation)"""
