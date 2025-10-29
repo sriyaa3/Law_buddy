@@ -1,39 +1,20 @@
 """
-Simple hybrid retriever for AskLegal Enhanced
-Combines vector similarity search with keyword matching
+Simplified retriever for AskLegal Enhanced
+Uses basic keyword matching without external dependencies
 """
 import os
 from pathlib import Path
 from typing import List, Dict, Optional
-import numpy as np
 
 class HybridRetriever:
-    """Hybrid retrieval system combining FAISS and keyword search"""
+    """Simplified retrieval system using keyword matching"""
     
     def __init__(self):
         self.index = None
         self.documents = []
         self.metadata = {}
-        self._initialize()
-    
-    def _initialize(self):
-        """Initialize the retriever with existing index"""
-        try:
-            import faiss
-            index_path = Path("./data/legal_documents.index")
-            
-            if index_path.exists():
-                self.index = faiss.read_index(str(index_path))
-                
-                # Load metadata if available
-                import json
-                metadata_path = Path("./data/legal_documents_metadata.json")
-                if metadata_path.exists():
-                    with open(metadata_path, 'r') as f:
-                        self.metadata = json.load(f)
-                        self.documents = self.metadata.get('chunks', [])
-        except Exception as e:
-            print(f"Warning: Could not initialize retriever: {e}")
+        # No external dependencies required
+        print("Initialized simplified retriever (no external dependencies)")
     
     def retrieve(self, query: str, top_k: int = 5) -> List[Dict]:
         """
