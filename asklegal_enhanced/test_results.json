@@ -6,9 +6,9 @@
   },
   "results": [
     {
-      "test": "Server connection",
+      "test": "Server response",
       "status": "FAIL",
-      "message": "Cannot connect to server"
+      "message": "Status code: 404"
     },
     {
       "test": "TinyLlama model",
