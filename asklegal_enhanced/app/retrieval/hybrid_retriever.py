@@ -18,7 +18,7 @@ class HybridRetriever:
     
     def retrieve(self, query: str, top_k: int = 5) -> List[Dict]:
         """
-        Retrieve relevant documents for a query
+        Retrieve relevant documents for a query using simple keyword matching
         
         Args:
             query: Search query
@@ -29,44 +29,35 @@ class HybridRetriever:
         """
         results = []
         
-        # If we have a valid index, use it
-        if self.index and self.index.ntotal > 0:
-            try:
-                from sentence_transformers import SentenceTransformer
-                
-                # Get query embedding
-                model = SentenceTransformer('all-MiniLM-L6-v2', cache_folder='./models/embeddings')
-                query_embedding = model.encode([query])[0].reshape(1, -1).astype('float32')
-                
-                # Search
-                distances, indices = self.index.search(query_embedding, min(top_k, self.index.ntotal))
-                
-                # Format results
-                for i, (dist, idx) in enumerate(zip(distances[0], indices[0])):
-                    if idx < len(self.documents):
-                        results.append({
-                            'content': self.documents[idx],
-                            'score': float(1 / (1 + dist)),  # Convert distance to similarity score
-                            'rank': i + 1
-                        })
-            except Exception as e:
-                print(f"Vector search failed: {e}")
+        # Simple keyword-based retrieval for MSME legal topics
+        query_lower = query.lower()
         
-        # If no results from vector search, do simple keyword matching
-        if not results and self.documents:
-            query_lower = query.lower()
-            for doc in self.documents[:top_k]:
-                if any(word in doc.lower() for word in query_lower.split()):
-                    results.append({
-                        'content': doc,
-                        'score': 0.5,
-                        'rank': len(results) + 1
-                    })
+        # Define some basic legal knowledge snippets for common MSME queries
+        knowledge_base = {
+            'gst': 'GST (Goods and Services Tax) is mandatory for businesses with turnover exceeding ₹40 lakhs (₹10 lakhs for northeastern states). MSMEs benefit from composition schemes and simplified returns.',
+            'msme': 'MSMEs are classified based on investment and turnover: Micro (≤₹1cr investment, ≤₹5cr turnover), Small (≤₹10cr investment, ≤₹50cr turnover), Medium (≤₹50cr investment, ≤₹250cr turnover).',
+            'registration': 'Udyam Registration is the primary registration for MSMEs in India. It provides benefits like lower interest rates, tax incentives, and easier access to government tenders.',
+            'compliance': 'MSMEs must comply with various regulations including GST, income tax, labour laws, and industry-specific licenses. Simplified compliance through portals like Shram Suvidha.',
+            'labour': 'Labour law compliance includes minimum wages, ESIC, PF, gratuity, and contracts. Businesses with 20+ employees need formal contracts and statutory registers.',
+            'contract': 'Essential business contracts include employment agreements, vendor contracts, service agreements, and NDAs. Key clauses: scope, payment terms, liability, termination.',
+            'trademark': 'Trademark registration protects brand names and logos. Online filing through IP India portal. MSMEs get subsidies on filing fees.',
+            'loan': 'MSME financing options include MUDRA loans (up to ₹10L), CGTMSE (collateral-free loans), and SIDBI schemes. Priority sector lending benefits available.',
+            'tax': 'MSMEs can opt for presumptive taxation (Section 44AD) if turnover <₹2cr. Regular taxation with business expense deductions for higher turnovers.'
+        }
         
-        # Fallback: return generic legal response context
+        # Match keywords from query
+        for keyword, content in knowledge_base.items():
+            if keyword in query_lower:
+                results.append({
+                    'content': content,
+                    'score': 0.8,
+                    'rank': len(results) + 1
+                })
+        
+        # Fallback: return generic legal information
         if not results:
             results = [{
-                'content': 'Indian legal system information available. Please ask specific questions about IPC, CPC, CrPC, or other legal acts.',
+                'content': 'Indian MSME legal system covers various aspects including business registration, GST compliance, labour laws, contract management, and intellectual property protection. Please ask specific questions about these topics.',
                 'score': 0.3,
                 'rank': 1
             }]
