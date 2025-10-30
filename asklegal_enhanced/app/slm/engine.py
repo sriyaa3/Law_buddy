@@ -1,4 +1,6 @@
 from typing import Optional, Dict, Any
+from app.slm.prompts.msme_legal_prompt import MSME_LEGAL_PROMPT_TEMPLATE, MSME_FALLBACK_PROMPT
+import re
 
 class LocalInferenceEngine:
     """Simplified local inference engine - uses fallback responses"""
@@ -41,8 +43,72 @@ class LocalInferenceEngine:
         Returns:
             str: Generated text
         """
-        # Return empty string to trigger fallback in model_router
-        return ""
+        # Check if this is an MSME legal prompt
+        if "MSME" in prompt and ("legal matters" in prompt or "legal matters" in prompt.lower()):
+            # Return a more detailed response for MSME queries
+            return self._generate_msme_response(prompt)
+        else:
+            # Return a basic fallback response
+            return "I'm an AI Legal Assistant specializing in MSME legal matters. I can help with business registration, compliance, contracts, intellectual property, employment law, and other legal issues specific to Micro, Small, and Medium Enterprises in India."
+    
+    def _generate_msme_response(self, prompt: str) -> str:
+        """
+        Generate a more detailed MSME-specific response
+        
+        Args:
+            prompt (str): Input prompt
+            
+        Returns:
+            str: Generated response
+        """
+        # Extract the query from the prompt using regex
+        query = "General MSME legal query"
+        
+        # Try to extract query from different possible formats
+        query_patterns = [
+            r"User Query:\s*(.*?)\s*\n\n",
+            r"Question:\s*(.*?)\s*\n\n",
+            r"Query:\s*(.*?)\s*\n\n",
+            r"User Query:\s*(.*?)$",
+            r"Question:\s*(.*?)$",
+            r"Query:\s*(.*?)$"
+        ]
+        
+        # Clean the prompt to make extraction easier
+        clean_prompt = prompt.replace('\r\n', '\n').replace('\r', '\n')
+        
+        for pattern in query_patterns:
+            match = re.search(pattern, clean_prompt, re.DOTALL | re.IGNORECASE)
+            if match:
+                query = match.group(1).strip()
+                # Remove any trailing instructions or formatting
+                query = re.split(r'\n\s*\n', query)[0].strip()
+                break
+        
+        # If we still have the default query, try to get the first meaningful line
+        if query == "General MSME legal query":
+            lines = clean_prompt.split('\n')
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith(('You are', 'Context:', 'Provide', 'Instructions:', 'Use the')):
+                    # If this looks like a question, use it
+                    if '?' in line or line.startswith(('What', 'How', 'Why', 'When', 'Where', 'Who', 'Can', 'Could', 'Should', 'Would', 'Is', 'Are', 'Do', 'Does')):
+                        query = line
+                        break
+                    # Otherwise, if it's a reasonable length, use it
+                    elif 10 <= len(line) <= 200:
+                        query = line
+                        break
+        
+        # Use the fallback prompt for a more structured response
+        try:
+            fallback_prompt = MSME_FALLBACK_PROMPT.format(query=query)
+            response = fallback_prompt
+        except Exception as e:
+            # If formatting fails, return a direct response
+            response = f"MSME stands for Micro, Small, and Medium Enterprises. In India, MSMEs are classified based on investment in plant and machinery/equipment and annual turnover. They play a crucial role in the Indian economy, contributing significantly to GDP, employment, and exports. Your specific query was about: {query}"
+        
+        return response
     
     def get_available_models(self) -> Dict[str, Dict[str, Any]]:
         """
