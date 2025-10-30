@@ -30,7 +30,7 @@ class WorkflowStep:
         self.started_at = None
         self.completed_at = None
         self.assigned_to = None
-        self.due_date = None
+        self.due_date: Optional[datetime] = None
 
 class WorkflowAutomationEngine:
     """Workflow automation engine for MSMEs"""

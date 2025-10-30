@@ -86,17 +86,21 @@ def check_frontend():
         print("  Note: You can build with: cd frontend && npm run build")
         return True
 
-def start_backend(port=8007, dev_mode=True):
+def start_backend(port=8000, dev_mode=True):
     """Start the FastAPI backend server"""
     print(f"\n🚀 Starting backend server on port {port}...")
     
     if not check_port_available(port):
         print(f"  ✗ Port {port} is already in use")
-        response = input(f"Try a different port? (y/n): ")
-        if response.lower() == 'y':
-            new_port = int(input("Enter port number: "))
-            return start_backend(new_port, dev_mode)
+        # Try to find an available port
+        for i in range(10):
+            new_port = port + i
+            if check_port_available(new_port):
+                port = new_port
+                print(f"  Using port {port} instead")
+                break
         else:
+            print("  Could not find an available port")
             return False
     
     try:
