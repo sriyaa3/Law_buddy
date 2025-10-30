@@ -18,6 +18,17 @@ class LocalInferenceEngine:
         self.is_initialized = False
         self._initialize_engine()
     
+    def _initialize_engine(self):
+        """Initialize Hugging Face engine"""
+        try:
+            from app.slm.hf_engine import hf_engine
+            self.engine = hf_engine
+            self.is_initialized = True
+            print("✓ Hugging Face engine initialized successfully")
+        except Exception as e:
+            print(f"Warning: Could not initialize HF engine: {e}")
+            self.is_initialized = False
+    
     def initialize(self, model_name: Optional[str] = None) -> bool:
         """
         Initialize the inference engine with a model
@@ -28,9 +39,9 @@ class LocalInferenceEngine:
         Returns:
             bool: True if initialization successful, False otherwise
         """
-        # Simplified - always return True as we use fallback
-        self.is_initialized = True
-        return True
+        if not self.is_initialized:
+            self._initialize_engine()
+        return self.is_initialized
     
     def generate(self, prompt: str, model_name: Optional[str] = None, **kwargs) -> str:
         """
