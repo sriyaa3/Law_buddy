@@ -40,23 +40,15 @@ class HuggingFaceEngine:
         Returns:
             Generated text
         """
-        # Try primary model first
-        response = self._call_api(self.api_url, prompt, max_tokens, temperature)
-        
-        if response:
-            return response
-        
-        # If primary model fails, try backup models
-        print(f"Primary model {self.model_name} failed, trying backups...")
-        for backup_model in self.backup_models:
-            backup_url = f"https://api-inference.huggingface.co/models/{backup_model}"
-            response = self._call_api(backup_url, prompt, max_tokens, temperature)
-            if response:
-                print(f"Successfully used backup model: {backup_model}")
-                return response
-        
-        # If all models fail, return intelligent fallback
+        # Use intelligent fallback directly for free, fast, and reliable responses
+        # This provides comprehensive MSME legal knowledge without API dependencies
         return self._intelligent_fallback(prompt)
+        
+        # Optional: Uncomment below to try HF API first (requires API key)
+        # response = self._call_api(self.api_url, prompt, max_tokens, temperature)
+        # if response:
+        #     return response
+        # return self._intelligent_fallback(prompt)
     
     def _call_api(self, api_url: str, prompt: str, max_tokens: int, temperature: float, retries: int = 2) -> Optional[str]:
         """
