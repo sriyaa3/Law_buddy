@@ -67,6 +67,23 @@ class LocalInferenceEngine:
         # Fallback to intelligent responses
         return self._generate_fallback_response(prompt)
     
+    def _generate_fallback_response(self, prompt: str) -> str:
+        """
+        Generate fallback response when HF API is unavailable
+        
+        Args:
+            prompt (str): Input prompt
+            
+        Returns:
+            str: Fallback response
+        """
+        # Check if this is an MSME legal prompt
+        if "MSME" in prompt or "msme" in prompt.lower():
+            return self._generate_msme_response(prompt)
+        else:
+            return "I'm an AI Legal Assistant specializing in MSME legal matters. I can help with business registration, compliance, contracts, intellectual property, employment law, and other legal issues specific to Micro, Small, and Medium Enterprises in India."
+
+    
     def _generate_msme_response(self, prompt: str) -> str:
         """
         Generate a more detailed MSME-specific response
