@@ -3,11 +3,11 @@ from app.slm.prompts.msme_legal_prompt import MSME_LEGAL_PROMPT_TEMPLATE, MSME_F
 import re
 
 class LocalInferenceEngine:
-    """Simplified local inference engine - uses fallback responses"""
+    """Inference engine using Hugging Face API for high-quality responses"""
     
-    def __init__(self, default_model: str = "fallback"):
+    def __init__(self, default_model: str = "huggingface"):
         """
-        Initialize the local inference engine
+        Initialize the inference engine
         
         Args:
             default_model (str): Default model to use for inference
@@ -15,7 +15,8 @@ class LocalInferenceEngine:
         self.default_model = default_model
         self.current_model = None
         self.engine = None
-        self.is_initialized = True  # Always initialized with fallback
+        self.is_initialized = False
+        self._initialize_engine()
     
     def initialize(self, model_name: Optional[str] = None) -> bool:
         """
