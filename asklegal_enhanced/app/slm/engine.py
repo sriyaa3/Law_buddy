@@ -45,7 +45,7 @@ class LocalInferenceEngine:
     
     def generate(self, prompt: str, model_name: Optional[str] = None, **kwargs) -> str:
         """
-        Generate text using fallback responses (no model required)
+        Generate text using Hugging Face API or fallback
         
         Args:
             prompt (str): Input prompt
@@ -55,13 +55,17 @@ class LocalInferenceEngine:
         Returns:
             str: Generated text
         """
-        # Check if this is an MSME legal prompt
-        if "MSME" in prompt and ("legal matters" in prompt or "legal matters" in prompt.lower()):
-            # Return a more detailed response for MSME queries
-            return self._generate_msme_response(prompt)
-        else:
-            # Return a basic fallback response
-            return "I'm an AI Legal Assistant specializing in MSME legal matters. I can help with business registration, compliance, contracts, intellectual property, employment law, and other legal issues specific to Micro, Small, and Medium Enterprises in India."
+        # Try using HF engine first
+        if self.is_initialized and self.engine:
+            try:
+                response = self.engine.generate(prompt, **kwargs)
+                if response and len(response.strip()) > 0:
+                    return response
+            except Exception as e:
+                print(f"HF engine error: {e}, using fallback")
+        
+        # Fallback to intelligent responses
+        return self._generate_fallback_response(prompt)
     
     def _generate_msme_response(self, prompt: str) -> str:
         """
