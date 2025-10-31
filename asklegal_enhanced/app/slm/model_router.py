@@ -3,14 +3,20 @@ from app.slm.engine import inference_engine
 from app.msme.context.workflow import context_collector
 from app.msme.knowledge_base.industry_taxonomy import industry_taxonomy
 from app.slm.prompts.msme_legal_prompt import MSME_LEGAL_PROMPT_TEMPLATE, MSME_FALLBACK_PROMPT
+from app.slm.calculation_engine import calculation_engine, CalculationType
+from app.slm.gemini_engine import gemini_engine
 import os
 import requests
 from enum import Enum
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ModelType(Enum):
     """Model types"""
     SLM = "slm"  # Small Language Model (local)
-    LLM = "llm"  # Large Language Model (server)
+    LLM = "llm"  # Large Language Model (Gemini)
+    CALC = "calc"  # Calculation engine
 
 class ModelRouter:
     """Model router that selects appropriate model based on query complexity and MSME context"""
