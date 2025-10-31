@@ -287,9 +287,77 @@ Keep your response focused, practical, and actionable for MSME owners.
             logger.error(f"Gemini engine error: {e}, falling back to SLM")
             return self._generate_with_slm(query, context, user_id)
     
+    def _get_minimal_context(self, user_id: str, query_type: str) -> str:
+        """
+        Get minimal context for specific query types (dynamic context loading)
+        
+        Args:
+            user_id: User identifier
+            query_type: Type of query (calculation, compliance, etc.)
+            
+        Returns:
+            Minimal relevant context
+        """
+        if not user_id:
+            return ""
+        
+        business_context = context_collector.get_context_for_user(user_id)
+        if not business_context:
+            return ""
+        
+        if query_type == "calculation":
+            # For calculations, only include basic business info
+            return f"""Business Context:
+- Legal Structure: {business_context.get('legal_structure', 'N/A')}
+- Business Size: {business_context.get('business_size', 'N/A')}
+- Location: {business_context.get('location', 'N/A')}
+"""
+        else:
+            return ""
+    
+    def _get_dynamic_context(self, query: str, user_id: str, existing_context: str) -> str:
+        """
+        Dynamically load only relevant context based on query type
+        
+        Args:
+            query: User query
+            user_id: User identifier
+            existing_context: Existing context from retrieval
+            
+        Returns:
+            Relevant context
+        """
+        query_lower = query.lower()
+        context_parts = []
+        
+        # Determine what context is needed
+        needs_business_context = any(word in query_lower for word in ['my', 'our', 'company', 'business'])
+        needs_industry_context = any(word in query_lower for word in ['industry', 'sector', 'manufacturing', 'retail', 'services'])
+        
+        if user_id and needs_business_context:
+            business_context = context_collector.get_context_for_user(user_id)
+            if business_context:
+                context_parts.append(f"""Business Context:
+- Industry: {business_context.get('industry', 'N/A')}
+- Business Size: {business_context.get('business_size', 'N/A')}
+- Legal Structure: {business_context.get('legal_structure', 'N/A')}
+- Location: {business_context.get('location', 'N/A')}
+- Employee Count: {business_context.get('employee_count', 'N/A')}
+""")
+        
+        if user_id and needs_industry_context:
+            industry_insights = context_collector.get_industry_insights(user_id)
+            if industry_insights:
+                context_parts.append(f"""Industry Insights:
+- Legal Requirements: {', '.join(industry_insights.get('legal_requirements', [])[:3])}
+- Common Issues: {', '.join(industry_insights.get('common_issues', [])[:3])}
+""")
+        
+        return "\n".join(context_parts) if context_parts else "No specific business context available."
+    
     def _generate_with_slm(self, query: str, context: str, user_id: str = "") -> str:
         """
-        Generate response using local SLM with MSME context and specialized prompts
+        Generate response using local SLM with dynamic MSME context
         
         Args:
             query (str): User query
@@ -299,29 +367,13 @@ Keep your response focused, practical, and actionable for MSME owners.
         Returns:
             str: Generated response
         """
-        # Get MSME context if user_id is provided
-        msme_context = ""
-        if user_id:
-            business_context = context_collector.get_context_for_user(user_id)
-            industry_insights = context_collector.get_industry_insights(user_id)
-            
-            if business_context:
-                msme_context += f"Business Context:\n"
-                msme_context += f"- Industry: {business_context.get('industry', 'N/A')}\n"
-                msme_context += f"- Business Size: {business_context.get('business_size', 'N/A')}\n"
-                msme_context += f"- Legal Structure: {business_context.get('legal_structure', 'N/A')}\n"
-                msme_context += f"- Location: {business_context.get('location', 'N/A')}\n"
-                msme_context += f"- Employee Count: {business_context.get('employee_count', 'N/A')}\n"
-                
-                if industry_insights:
-                    msme_context += f"\nIndustry Insights:\n"
-                    msme_context += f"- Legal Requirements: {', '.join(industry_insights.get('legal_requirements', []))}\n"
-                    msme_context += f"- Common Issues: {', '.join(industry_insights.get('common_issues', []))}\n"
+        # Get minimal relevant context (dynamic loading)
+        relevant_context = self._get_dynamic_context(query, user_id, context)
         
-        # Use specialized MSME prompt template
+        # Use specialized MSME prompt template with only relevant context
         prompt = MSME_LEGAL_PROMPT_TEMPLATE.format(
-            msme_context=msme_context,
-            context=context,
+            msme_context=relevant_context,
+            context=context[:500] if context else "",  # Limit context size
             query=query
         )
         
@@ -329,11 +381,11 @@ Keep your response focused, practical, and actionable for MSME owners.
             response = inference_engine.generate(prompt)
             # If we get an empty or error response, provide a more helpful fallback
             if not response or "Error:" in response or response.strip() == "":
-                return self._get_contextual_fallback(query, context, msme_context)
+                return self._get_contextual_fallback(query, context, relevant_context)
             return response
         except Exception as e:
-            print(f"Error with SLM: {e}")
-            return self._get_contextual_fallback(query, context, msme_context)
+            logger.error(f"Error with SLM: {e}")
+            return self._get_contextual_fallback(query, context, relevant_context)
     
     def _get_contextual_fallback(self, query: str, context: str, msme_context: str = "") -> str:
         """
