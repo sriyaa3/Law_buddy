@@ -172,7 +172,7 @@ class ModelRouter:
     
     def generate_response(self, query: str, context: str = "", model_preference: Optional[ModelType] = None, user_id: str = "") -> str:
         """
-        Generate response using appropriate model
+        Generate response using appropriate model with smart routing
         
         Args:
             query (str): User query
@@ -190,11 +190,101 @@ class ModelRouter:
         else:
             model_type, reasoning = self.route_query(query, context, user_id)
         
+        logger.info(f"Model routing: {reasoning}")
         print(f"Model routing: {reasoning}")
         
-        if model_type == ModelType.LLM:
-            return self._generate_with_llm(query, context)
+        # Route to appropriate engine
+        if model_type == ModelType.CALC:
+            return self._generate_with_calculation_engine(query, context)
+        elif model_type == ModelType.LLM:
+            return self._generate_with_gemini(query, context, user_id)
         else:
+            return self._generate_with_slm(query, context, user_id)
+    
+    def _generate_with_calculation_engine(self, query: str, context: str) -> str:
+        """
+        Generate response using calculation engine for financial queries
+        
+        Args:
+            query (str): User query
+            context (str): Additional context
+            
+        Returns:
+            str: Calculation response
+        """
+        try:
+            # Extract financial data from query
+            financial_data = calculation_engine.extract_financial_data(query)
+            
+            if not financial_data:
+                return "I detected this as a financial calculation query, but couldn't extract specific numbers. Please provide:\n- Turnover/Revenue amount\n- Number of employees (if applicable)\n- Salary expenditure\n- Other expenses\n\nExample: 'A company has 1 crore turnover with 20 employees, salary expenditure of 20 lakhs, resources 50 lakhs'"
+            
+            # Calculate tax liability
+            calculation_result = calculation_engine.calculate_tax_liability(financial_data)
+            
+            # Format response
+            response = calculation_engine.format_calculation_response(calculation_result, query)
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Calculation engine error: {e}")
+            return f"I encountered an error performing the calculation: {str(e)}\n\nPlease try rephrasing your query with clear financial figures."
+    
+    def _generate_with_gemini(self, query: str, context: str, user_id: str = "") -> str:
+        """
+        Generate response using Gemini LLM with dynamic context loading
+        
+        Args:
+            query (str): User query
+            context (str): Additional context
+            user_id (str): User identifier for MSME context
+            
+        Returns:
+            str: Generated response
+        """
+        try:
+            # Check if this is a calculation query
+            is_calculation, calc_type = calculation_engine.detect_calculation_query(query)
+            
+            if is_calculation:
+                # For calculation queries, extract financial data
+                financial_data = calculation_engine.extract_financial_data(query)
+                
+                # Get minimal MSME context for calculations
+                minimal_context = self._get_minimal_context(user_id, "calculation")
+                
+                # Use Gemini with calculation-focused prompt
+                response = gemini_engine.generate_with_calculation_focus(query, financial_data, minimal_context)
+                return response
+            else:
+                # For complex reasoning queries, get relevant context
+                relevant_context = self._get_dynamic_context(query, user_id, context)
+                
+                # Create comprehensive prompt
+                prompt = f"""You are an expert AI Legal Assistant specializing in MSME legal matters in India.
+
+{relevant_context}
+
+Additional Context: {context}
+
+User Query: {query}
+
+Provide a detailed, accurate response based on Indian laws and MSME regulations. Include:
+1. Relevant legal framework and regulations
+2. Specific procedures and requirements
+3. Compliance obligations
+4. Practical recommendations
+5. Government schemes and benefits (if applicable)
+
+Keep your response focused, practical, and actionable for MSME owners.
+"""
+                
+                response = gemini_engine.generate(prompt, max_tokens=2048, temperature=0.7)
+                return response
+                
+        except Exception as e:
+            logger.error(f"Gemini engine error: {e}, falling back to SLM")
             return self._generate_with_slm(query, context, user_id)
     
     def _generate_with_slm(self, query: str, context: str, user_id: str = "") -> str:
