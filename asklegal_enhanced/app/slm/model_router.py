@@ -414,44 +414,6 @@ Keep your response focused, practical, and actionable for MSME owners.
                 pass
             # Final fallback
             return f"I specialize in helping MSMEs with legal matters in India. Your query: '{query}' relates to business law. I can assist with common MSME legal issues such as:\n- Business registration (Udyam, GST)\n- Compliance requirements\n- Employment and labor laws\n- Contract drafting\n- Intellectual property protection\n- Tax obligations\n- Access to finance\n- Export-import regulations\n\nPlease ask more specific questions about these topics, and I'll provide detailed guidance."
-    
-    def _generate_with_llm(self, query: str, context: str) -> str:
-        """
-        Generate response using server LLM
-        
-        Args:
-            query (str): User query
-            context (str): Additional context
-            
-        Returns:
-            str: Generated response
-        """
-        try:
-            # Prepare request payload
-            payload = {
-                "prompt": f"Context: {context}\n\nQuery: {query}\n\nProvide a detailed legal analysis:",
-                "max_tokens": 1024,
-                "temperature": 0.7
-            }
-            
-            # Add API key if available
-            headers = {}
-            if self.llm_api_key:
-                headers["Authorization"] = f"Bearer {self.llm_api_key}"
-            
-            # Make request to server LLM
-            response = requests.post(self.llm_endpoint, json=payload, headers=headers, timeout=30)
-            
-            if response.status_code == 200:
-                result = response.json()
-                return result.get("text", "No response text received")
-            else:
-                return f"Server LLM error: {response.status_code} - {response.text}"
-                
-        except Exception as e:
-            # Fallback to SLM if server LLM fails
-            print(f"Server LLM failed, falling back to SLM: {e}")
-            return self._generate_with_slm(query, context)
 
 # Global instance
 model_router = ModelRouter()
