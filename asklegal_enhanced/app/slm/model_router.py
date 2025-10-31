@@ -49,6 +49,7 @@ class ModelRouter:
     def route_query(self, query: str, context: str = "", user_id: str = "") -> Tuple[ModelType, str]:
         """
         Route query to appropriate model based on complexity and MSME context
+        Uses smart routing: Calculations -> Gemini, Simple queries -> SLM, Complex -> Gemini
         
         Args:
             query (str): User query
@@ -58,20 +59,39 @@ class ModelRouter:
         Returns:
             Tuple[ModelType, str]: (model_type, reasoning)
         """
+        # First, check if this is a calculation query
+        is_calculation, calc_type = calculation_engine.detect_calculation_query(query)
+        
+        if is_calculation:
+            # Route calculation queries to Gemini for accurate responses
+            if gemini_engine.is_available():
+                return ModelType.LLM, f"Calculation query detected ({calc_type.value if calc_type else 'general'}), routing to Gemini for accuracy"
+            else:
+                # Fallback to calculation engine if Gemini unavailable
+                return ModelType.CALC, f"Calculation query detected, using calculation engine (Gemini unavailable)"
+        
+        # For non-calculation queries, use existing logic with dynamic context
         complexity_score = self._calculate_complexity(query, context)
         msme_relevance = self._calculate_msme_relevance(query, user_id)
         
-        # If query is highly relevant to MSME domain, prefer SLM for domain expertise
-        if msme_relevance > 0.7:
-            return ModelType.SLM, f"High MSME relevance ({msme_relevance:.2f}), routing to SLM for domain expertise"
+        # If query is highly relevant to MSME domain and simple, prefer SLM for domain expertise
+        if msme_relevance > 0.7 and complexity_score < 0.5:
+            return ModelType.SLM, f"High MSME relevance ({msme_relevance:.2f}), low complexity, routing to SLM for domain expertise"
         elif complexity_score > 0.7:
-            return ModelType.LLM, f"High complexity score ({complexity_score:.2f}), routing to LLM"
+            # Complex queries go to Gemini if available
+            if gemini_engine.is_available():
+                return ModelType.LLM, f"High complexity score ({complexity_score:.2f}), routing to Gemini for better reasoning"
+            else:
+                return ModelType.SLM, f"High complexity but Gemini unavailable, using SLM"
         elif complexity_score > 0.4:
             # For medium complexity, consider MSME relevance
             if msme_relevance > 0.5:
                 return ModelType.SLM, f"Medium complexity with MSME relevance, routing to SLM for domain expertise"
             else:
-                return ModelType.LLM, f"Medium complexity score ({complexity_score:.2f}), routing to LLM for better reasoning"
+                if gemini_engine.is_available():
+                    return ModelType.LLM, f"Medium complexity score ({complexity_score:.2f}), routing to Gemini for better reasoning"
+                else:
+                    return ModelType.SLM, f"Medium complexity but Gemini unavailable, using SLM"
         else:
             return ModelType.SLM, f"Low complexity score ({complexity_score:.2f}), routing to SLM for efficiency"
     
