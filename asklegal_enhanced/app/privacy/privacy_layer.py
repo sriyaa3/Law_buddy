@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, Optional
 from enum import Enum
 
 class QuerySensitivity(Enum):
@@ -99,7 +99,7 @@ class PrivacyLayer:
         
         return text
     
-    def route_query(self, query: str, user_context: Dict[str, Any] = None) -> Tuple[str, str]:
+    def route_query(self, query: str, user_context: Optional[Dict[str, Any]] = None) -> Tuple[str, str]:
         """
         Route query based on sensitivity and user context
         

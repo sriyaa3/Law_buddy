@@ -24,7 +24,8 @@ async def upload_document(file: UploadFile = File(...)):
     """
     try:
         # Generate unique filename
-        file_extension = os.path.splitext(file.filename)[1]
+        filename = file.filename or "unnamed_file"
+        file_extension = os.path.splitext(filename)[1]
         unique_filename = f"{uuid.uuid4()}{file_extension}"
         file_path = os.path.join(settings.UPLOAD_DIR, unique_filename)
         
@@ -61,7 +62,7 @@ async def upload_document(file: UploadFile = File(...)):
                 element_data = {
                     "text": element["text"],
                     "metadata": {
-                        "filename": file.filename,
+                        "filename": filename,
                         "file_path": file_path,
                         "element_id": element["id"],
                         "element_type": element["type"],
@@ -94,25 +95,9 @@ async def upload_document(file: UploadFile = File(...)):
             if doc_ids:
                 redis_store.store_document_metadata(doc_ids[0], metadata)
         
-        # Store in Neo4j graph database
-        if neo4j_connector and doc_ids:
-            doc_id = doc_ids[0]
-            # Create document node
-            neo4j_connector.create_document_node(doc_id, metadata)
-            
-            # Create clause nodes
-            for i, clause in enumerate(clause_info["clauses"]):
-                clause_id = f"{doc_id}_clause_{i}"
-                neo4j_connector.create_clause_node(clause_id, clause["text"], doc_id)
-            
-            # Create entity nodes
-            for i, entity in enumerate(entities):
-                entity_id = f"{doc_id}_entity_{i}"
-                neo4j_connector.create_entity_node(entity_id, entity["text"], entity["label"])
-        
         return JSONResponse(content={
             "document_id": doc_ids[0] if doc_ids else None,
-            "filename": file.filename,
+            "filename": filename,
             "elements_processed": len(elements),
             "entities_extracted": len(entities),
             "clauses_extracted": len(clause_info["clauses"]),
@@ -137,10 +122,34 @@ async def process_document(document_id: str):
         if redis_store:
             metadata = redis_store.get_document_metadata(document_id)
         
-        # Retrieve structure from Neo4j
+        # Retrieve structure from Neo4j or extract directly from text
         structure = {}
-        if neo4j_connector:
-            structure = neo4j_connector.get_document_structure(document_id)
+        clauses = []
+        entities = []
+        
+        # If we have metadata with file path, extract clauses directly
+        if metadata and "file_name" in metadata:
+            # Reconstruct file path (this is a simplified approach)
+            upload_dir = getattr(settings, "UPLOAD_DIR", "./uploads")
+            file_path = os.path.join(upload_dir, metadata["file_name"])
+            
+            # Check if file exists and extract clauses
+            if os.path.exists(file_path):
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        text = f.read()
+                    clause_info = entity_extractor.extract_clauses_and_relationships(text)
+                    clauses = clause_info["clauses"]
+                    # Extract just the clause texts for the response
+                    clause_texts = [clause["text"] for clause in clauses]
+                    entities = []  # In simplified version, we don't extract entities here
+                except Exception as e:
+                    print(f"Error extracting clauses: {e}")
+                    clause_texts = []
+            else:
+                clause_texts = []
+        else:
+            clause_texts = []
         
         return JSONResponse(content={
             "document_id": document_id,
@@ -154,8 +163,8 @@ async def process_document(document_id: str):
                     "Clauses identified and indexed",
                     "Metadata stored for fast retrieval"
                 ],
-                "entities": structure.get("entities", []),
-                "clauses": structure.get("clauses", [])
+                "entities": entities,
+                "clauses": clause_texts
             }
         })
     except Exception as e:
@@ -168,7 +177,8 @@ async def upload_scanned_document(file: UploadFile = File(...)):
     """
     try:
         # Generate unique filename
-        file_extension = os.path.splitext(file.filename)[1]
+        filename = file.filename or "unnamed_file"
+        file_extension = os.path.splitext(filename)[1]
         unique_filename = f"{uuid.uuid4()}{file_extension}"
         file_path = os.path.join(settings.UPLOAD_DIR, unique_filename)
         
@@ -205,7 +215,7 @@ async def upload_scanned_document(file: UploadFile = File(...)):
                 element_data = {
                     "text": element["text"],
                     "metadata": {
-                        "filename": file.filename,
+                        "filename": filename,
                         "file_path": file_path,
                         "element_id": element["id"],
                         "element_type": element["type"],
@@ -241,7 +251,7 @@ async def upload_scanned_document(file: UploadFile = File(...)):
         
         return JSONResponse(content={
             "document_id": doc_ids[0] if doc_ids else None,
-            "filename": file.filename,
+            "filename": filename,
             "elements_processed": len(elements),
             "entities_extracted": len(entities),
             "clauses_extracted": len(clause_info["clauses"]),

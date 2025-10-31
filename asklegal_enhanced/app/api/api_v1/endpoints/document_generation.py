@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import os
@@ -59,6 +59,46 @@ async def generate_document(request: DocumentRequest):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating document: {str(e)}")
+
+@router.get("/templates")
+async def get_templates():
+    """
+    Get available document templates
+    """
+    try:
+        # Get template information from document generator
+        template_info = {
+            "nda": {
+                "title": "Non-Disclosure Agreement",
+                "description": "Create a legally binding NDA for protecting confidential information",
+                "fields": ["disclosing_party", "receiving_party", "effective_date", "term"]
+            },
+            "employment_contract": {
+                "title": "Employment Contract",
+                "description": "Generate a comprehensive employment agreement",
+                "fields": ["employer", "employee", "position", "salary", "start_date", "effective_date"]
+            },
+            "service_agreement": {
+                "title": "Service Agreement",
+                "description": "Create a service agreement for business relationships",
+                "fields": ["client", "service_provider", "services", "payment_terms", "term", "effective_date"]
+            },
+            "loan_agreement": {
+                "title": "Loan Agreement",
+                "description": "Generate a loan agreement between parties",
+                "fields": ["lender", "borrower", "loan_amount", "interest_rate", "repayment_terms", "effective_date"]
+            },
+            "notice": {
+                "title": "Legal Notice",
+                "description": "Create a formal legal notice",
+                "fields": ["to_party", "from_party", "subject", "notice_content", "notice_date", "required_action", "response_deadline", "contact_info"]
+            }
+        }
+        
+        return JSONResponse(content={"templates": template_info})
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving templates: {str(e)}")
 
 @router.get("/generated/{document_id}")
 async def download_document(document_id: str):

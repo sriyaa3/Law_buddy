@@ -1,0 +1,43 @@
+CONTRACT FOR SERVICES
+
+This Agreement is made on this 15th day of March, 2024
+
+BETWEEN:
+ABC Technologies Private Limited, a company incorporated under the Companies Act, 2013, having its registered office at 123 Business Park, Mumbai, Maharashtra (hereinafter referred to as the "Company")
+
+AND:
+Mr. Rajesh Kumar, residing at 456 Residential Street, Bangalore, Karnataka (hereinafter referred to as the "Service Provider")
+
+WHEREAS:
+A. The Company is engaged in the business of software development and requires certain specialized services.
+B. The Service Provider has the expertise and experience to provide such services.
+
+NOW THEREFORE, in consideration of the mutual covenants and promises contained herein, the parties agree as follows:
+
+1. SERVICES
+The Service Provider shall provide software development services to the Company, including but not limited to:
+- Development of mobile applications
+- Backend API development
+- Database design and implementation
+- Code review and optimization
+
+2. TERM
+This Agreement shall commence on April 1, 2024, and continue for a period of 12 months unless terminated earlier in accordance with this Agreement.
+
+3. COMPENSATION
+The Company shall pay the Service Provider a monthly fee of ₹1,50,000 for the services rendered. Payment shall be made within 15 days of receipt of invoice.
+
+4. CONFIDENTIALITY
+The Service Provider agrees to maintain the confidentiality of all proprietary information of the Company and not to disclose such information to any third party.
+
+5. TERMINATION
+Either party may terminate this Agreement with 30 days' written notice.
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the date first above written.
+
+For ABC Technologies Private Limited     For Mr. Rajesh Kumar
+Authorized Signatory                    Signature
+
+Name:                                   Name:
+Title:                                  Title:
+Date:                                   Date:

@@ -275,7 +275,7 @@ function DocumentGenerationPage() {
     try {
       // Prepare the request data
       const documentRequest = {
-        document_type: selectedTemplate.id,
+        template_type: selectedTemplate.id,
         details: formData
       };
       

@@ -115,16 +115,30 @@ class LegalEntityExtractor:
         clauses = []
         relationships = []
         
-        # Extract clauses
+        # Extract clauses with improved patterns that match our document structure
         clause_patterns = [
             r'(\d+\.\s*[A-Z][^.]*?shall[^.]*\.)',
             r'(\d+\.\s*[A-Z][^.]*?agrees[^.]*\.)',
             r'(\d+\.\s*[A-Z][^.]*?warrants[^.]*\.)',
-            r'(\d+\.\s*[A-Z][^.]*?represents[^.]*\.)'
+            r'(\d+\.\s*[A-Z][^.]*?represents[^.]*\.)',
+            r'(\d+\.\s*[A-Z][^.]*?payment[^.]*\.)',
+            r'(\d+\.\s*[A-Z][^.]*?confidentiality[^.]*\.)',
+            r'(\d+\.\s*[A-Z][^.]*?termination[^.]*\.)',
+            r'(\d+\.\s*[A-Z][^.]*?dispute[^.]*\.)',
+            r'(\d+\.\s*[A-Z][^.]*?intellectual property[^.]*\.)',
+            r'(\d+\.\s*[A-Z][^.]*?services[^.]*\.)',
+            r'(\d+\.\s*[A-Z][^.]*?term[^.]*\.)'
         ]
         
+        # Also look for section headers
+        section_patterns = [
+            r'([A-Z][A-Za-z\s]+)\n\n',
+            r'\n([A-Z][A-Za-z\s]+)\n'
+        ]
+        
+        # Extract clause-like sentences
         for pattern in clause_patterns:
-            matches = re.finditer(pattern, text, re.MULTILINE)
+            matches = re.finditer(pattern, text, re.MULTILINE | re.IGNORECASE)
             for match in matches:
                 clause_text = match.group(1).strip()
                 if len(clause_text) > 20:  # Filter out very short matches
@@ -134,6 +148,21 @@ class LegalEntityExtractor:
                         "end": match.end()
                     })
         
+        # Extract section headers as clauses
+        for pattern in section_patterns:
+            matches = re.finditer(pattern, text, re.MULTILINE)
+            for match in matches:
+                section_text = match.group(1).strip()
+                if len(section_text) > 10 and len(section_text) < 50:  # Reasonable section header length
+                    # Check if it's not already captured
+                    already_captured = any(section_text.lower() in clause["text"].lower() for clause in clauses)
+                    if not already_captured:
+                        clauses.append({
+                            "text": section_text,
+                            "start": match.start(),
+                            "end": match.end()
+                        })
+        
         # Extract relationships between clauses (simplified)
         for i in range(len(clauses) - 1):
             relationships.append({
@@ -142,8 +171,17 @@ class LegalEntityExtractor:
                 "type": "sequential"
             })
         
+        # Remove duplicates based on text content
+        unique_clauses = []
+        seen_texts = set()
+        for clause in clauses:
+            text_lower = clause["text"].lower()
+            if text_lower not in seen_texts:
+                unique_clauses.append(clause)
+                seen_texts.add(text_lower)
+        
         return {
-            "clauses": clauses,
+            "clauses": unique_clauses,
             "relationships": relationships
         }
 
