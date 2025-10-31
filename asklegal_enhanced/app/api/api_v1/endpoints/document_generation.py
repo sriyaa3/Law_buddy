@@ -9,6 +9,9 @@ from app.core.config import settings
 
 router = APIRouter()
 
+# Store document ID to filename mapping
+document_storage: Dict[str, str] = {}
+
 class DocumentRequest(BaseModel):
     template_type: str
     details: Dict[str, Any]
@@ -26,6 +29,9 @@ async def generate_document(request: DocumentRequest):
     Generate legal document from template
     """
     try:
+        # Generate unique document ID
+        document_id = uuid.uuid4().hex
+        
         # Generate unique filename if not provided
         if not request.filename:
             timestamp = uuid.uuid4().hex[:8]
@@ -46,8 +52,10 @@ async def generate_document(request: DocumentRequest):
         if not success:
             raise HTTPException(status_code=500, detail="Failed to generate document")
         
+        # Store mapping
+        document_storage[document_id] = output_path
+        
         # Return response
-        document_id = uuid.uuid4().hex
         download_url = f"/api/v1/documents/generated/{document_id}"
         
         return DocumentResponse(
@@ -103,28 +111,58 @@ async def get_templates():
 @router.get("/generated/{document_id}")
 async def download_document(document_id: str):
     """
-    Download generated document
+    Download generated document by ID
     """
     try:
-        # In a real implementation, you would map document_id to actual file paths
-        # For now, we'll just return a placeholder
-        output_dir = os.path.join(settings.DATA_DIR, "generated_documents")
+        # Check if document exists in storage
+        if document_id not in document_storage:
+            raise HTTPException(status_code=404, detail="Document not found")
         
-        # Find the most recent document (simplified approach)
-        if os.path.exists(output_dir):
-            files = os.listdir(output_dir)
-            if files:
-                latest_file = max(files, key=lambda f: os.path.getctime(os.path.join(output_dir, f)))
-                file_path = os.path.join(output_dir, latest_file)
-                
-                if os.path.exists(file_path):
-                    return FileResponse(
-                        file_path, 
-                        media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                        filename=latest_file
-                    )
+        file_path = document_storage[document_id]
         
-        raise HTTPException(status_code=404, detail="Document not found")
+        # Check if file exists on disk
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="Document file not found")
         
+        # Get filename
+        filename = os.path.basename(file_path)
+        
+        # Return file
+        return FileResponse(
+            file_path, 
+            media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            filename=filename
+        )
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error downloading document: {str(e)}")
+
+@router.get("/list")
+async def list_documents():
+    """
+    List all generated documents
+    """
+    try:
+        output_dir = os.path.join(settings.DATA_DIR, "generated_documents")
+        
+        if not os.path.exists(output_dir):
+            return JSONResponse(content={"documents": []})
+        
+        documents = []
+        for doc_id, file_path in document_storage.items():
+            if os.path.exists(file_path):
+                filename = os.path.basename(file_path)
+                file_size = os.path.getsize(file_path)
+                documents.append({
+                    "document_id": doc_id,
+                    "filename": filename,
+                    "size": file_size,
+                    "download_url": f"/api/v1/documents/generated/{doc_id}"
+                })
+        
+        return JSONResponse(content={"documents": documents})
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error listing documents: {str(e)}")
