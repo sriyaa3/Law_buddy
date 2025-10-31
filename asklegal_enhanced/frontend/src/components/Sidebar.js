@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { 
   FaComments, 
   FaFileAlt, 
+  FaFileContract, 
   FaClipboardCheck, 
   FaTasks, 
   FaUser, 
@@ -63,6 +64,11 @@ function Sidebar() {
       title: "Document Processing",
       icon: <FaFileAlt />,
       path: "/documents"
+    },
+    {
+      title: "Document Generation",
+      icon: <FaFileContract />,
+      path: "/document-generation"
     },
     {
       title: "Compliance Check",

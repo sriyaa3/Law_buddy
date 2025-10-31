@@ -1,5 +1,5 @@
 from typing import Dict, Any, List
-from docx import Document as DocxDocument
+from docx import Document
 from docx.shared import Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 import os
@@ -46,9 +46,9 @@ class LegalDocumentGenerator:
             print(f"Error generating document: {e}")
             return False
     
-    def _create_nda_template(self, details: Dict[str, Any]) -> DocxDocument:
+    def _create_nda_template(self, details: Dict[str, Any]):
         """Create NDA template"""
-        doc = DocxDocument()
+        doc = Document()
         
         # Title
         title = doc.add_heading('NON-DISCLOSURE AGREEMENT', 0)
@@ -114,9 +114,9 @@ class LegalDocumentGenerator:
         
         return doc
     
-    def _create_employment_contract_template(self, details: Dict[str, Any]) -> DocxDocument:
+    def _create_employment_contract_template(self, details: Dict[str, Any]):
         """Create employment contract template"""
-        doc = DocxDocument()
+        doc = Document()
         
         # Title
         title = doc.add_heading('EMPLOYMENT AGREEMENT', 0)
@@ -191,9 +191,9 @@ class LegalDocumentGenerator:
         
         return doc
     
-    def _create_service_agreement_template(self, details: Dict[str, Any]) -> DocxDocument:
+    def _create_service_agreement_template(self, details: Dict[str, Any]):
         """Create service agreement template"""
-        doc = DocxDocument()
+        doc = Document()
         
         # Title
         title = doc.add_heading('SERVICE AGREEMENT', 0)
@@ -251,9 +251,9 @@ class LegalDocumentGenerator:
         
         return doc
     
-    def _create_loan_agreement_template(self, details: Dict[str, Any]) -> DocxDocument:
+    def _create_loan_agreement_template(self, details: Dict[str, Any]):
         """Create loan agreement template"""
-        doc = DocxDocument()
+        doc = Document()
         
         # Title
         title = doc.add_heading('LOAN AGREEMENT', 0)
@@ -316,9 +316,9 @@ class LegalDocumentGenerator:
         
         return doc
     
-    def _create_notice_template(self, details: Dict[str, Any]) -> DocxDocument:
+    def _create_notice_template(self, details: Dict[str, Any]):
         """Create notice template"""
-        doc = DocxDocument()
+        doc = Document()
         
         # Title
         title = doc.add_heading('NOTICE', 0)
