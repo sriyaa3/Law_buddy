@@ -72,8 +72,9 @@ async def generate_document(request: DocumentRequest):
         if not success:
             raise HTTPException(status_code=500, detail="Failed to generate document")
         
-        # Store mapping
+        # Store mapping and persist to file
         document_storage[document_id] = output_path
+        save_document_storage(document_storage)
         
         # Return response with proper download URL
         download_url = f"/api/v1/document-generation/generated/{document_id}"
