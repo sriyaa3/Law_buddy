@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FaBars, FaUserCircle } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import { FaBars, FaUserCircle, FaTachometerAlt, FaComments, FaFileAlt, FaGavel, FaTasks, FaCogs } from 'react-icons/fa';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const HeaderContainer = styled.header`
   background-color: #2c3e50;
@@ -19,6 +19,7 @@ const Logo = styled.div`
   align-items: center;
   font-size: 20px;
   font-weight: bold;
+  cursor: pointer;
   
   span {
     color: #3498db;
@@ -36,10 +37,17 @@ const NavItem = styled.div`
   padding: 5px 10px;
   border-radius: 4px;
   transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   
   &:hover {
     background-color: rgba(255, 255, 255, 0.1);
   }
+  
+  ${props => props.active && `
+    background-color: rgba(52, 152, 219, 0.3);
+  `}
 `;
 
 const UserMenu = styled.div`
@@ -59,18 +67,56 @@ const UserName = styled.div`
 
 function Header() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
 
   return (
     <HeaderContainer>
-      <Logo>
-        <FaBars style={{ marginRight: '10px', cursor: 'pointer' }} />
+      <Logo onClick={() => navigate('/dashboard')}>
+        <FaBars style={{ marginRight: '10px' }} />
         AskLegal <span>Enhanced</span>
       </Logo>
       
       <Nav>
-        <NavItem onClick={() => navigate('/dashboard')}>Dashboard</NavItem>
-        <NavItem>Help</NavItem>
-        <NavItem onClick={() => navigate('/profile')}>Settings</NavItem>
+        <NavItem 
+          active={isActive('/dashboard') || location.pathname === '/'} 
+          onClick={() => navigate('/dashboard')}
+        >
+          <FaTachometerAlt /> Dashboard
+        </NavItem>
+        <NavItem 
+          active={isActive('/chat')} 
+          onClick={() => navigate('/chat')}
+        >
+          <FaComments /> Chat
+        </NavItem>
+        <NavItem 
+          active={isActive('/document-generation')} 
+          onClick={() => navigate('/document-generation')}
+        >
+          <FaFileAlt /> Documents
+        </NavItem>
+        <NavItem 
+          active={isActive('/compliance')} 
+          onClick={() => navigate('/compliance')}
+        >
+          <FaGavel /> Compliance
+        </NavItem>
+        <NavItem 
+          active={isActive('/workflows')} 
+          onClick={() => navigate('/workflows')}
+        >
+          <FaTasks /> Workflows
+        </NavItem>
+        <NavItem 
+          active={isActive('/profile')} 
+          onClick={() => navigate('/profile')}
+        >
+          <FaCogs /> Settings
+        </NavItem>
       </Nav>
       
       <UserMenu onClick={() => navigate('/profile')}>

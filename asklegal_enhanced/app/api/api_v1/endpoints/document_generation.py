@@ -9,7 +9,7 @@ from app.core.config import settings
 
 router = APIRouter()
 
-# Store document ID to filename mapping
+# Store document ID to filename mapping (in production, use a database)
 document_storage: Dict[str, str] = {}
 
 class DocumentRequest(BaseModel):
@@ -55,8 +55,8 @@ async def generate_document(request: DocumentRequest):
         # Store mapping
         document_storage[document_id] = output_path
         
-        # Return response
-        download_url = f"/api/v1/documents/generated/{document_id}"
+        # Return response with proper download URL
+        download_url = f"/api/v1/document-generation/generated/{document_id}"
         
         return DocumentResponse(
             document_id=document_id,
@@ -127,11 +127,15 @@ async def download_document(document_id: str):
         # Get filename
         filename = os.path.basename(file_path)
         
-        # Return file
+        # Return file with proper headers for download
         return FileResponse(
             file_path, 
             media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            filename=filename
+            filename=filename,
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Access-Control-Expose-Headers": "Content-Disposition"
+            }
         )
         
     except HTTPException:
@@ -159,7 +163,7 @@ async def list_documents():
                     "document_id": doc_id,
                     "filename": filename,
                     "size": file_size,
-                    "download_url": f"/api/v1/documents/generated/{doc_id}"
+                    "download_url": f"/api/v1/document-generation/generated/{doc_id}"
                 })
         
         return JSONResponse(content={"documents": documents})

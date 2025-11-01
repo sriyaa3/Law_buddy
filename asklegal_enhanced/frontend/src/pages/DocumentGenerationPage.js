@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaFileContract, FaDownload, FaCheckCircle } from 'react-icons/fa';
 import { documentGenerationApi } from '../services/api';
-import api from '../services/api';
 
 const PageContainer = styled.div`
   max-width: 1200px;
@@ -271,18 +270,13 @@ function DocumentGenerationPage() {
     
     setIsDownloading(true);
     try {
-      // Get the full download URL
-      const downloadUrl = `http://localhost:8000/api/v1/documents/generated/${generatedDocument.document_id}`;
+      // Use the API service to download the document
+      const response = await documentGenerationApi.downloadDocument(generatedDocument.document_id);
       
-      // Create a temporary link and trigger download
-      const response = await fetch(downloadUrl);
-      
-      if (!response.ok) {
-        throw new Error('Download failed');
-      }
-      
-      // Get the blob from response
-      const blob = await response.blob();
+      // Create a blob from the response data
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      });
       
       // Create a temporary URL for the blob
       const url = window.URL.createObjectURL(blob);
@@ -300,7 +294,19 @@ function DocumentGenerationPage() {
       
     } catch (error) {
       console.error('Error downloading document:', error);
-      setError('Error downloading document. Please try again.');
+      // Fallback: try direct download
+      try {
+        const downloadUrl = `${window.location.origin}/api/v1/document-generation/generated/${generatedDocument.document_id}`;
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = generatedDocument.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (fallbackError) {
+        console.error('Fallback download also failed:', fallbackError);
+        setError('Error downloading document. Please try again.');
+      }
     } finally {
       setIsDownloading(false);
     }

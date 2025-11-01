@@ -62,7 +62,9 @@ export const documentGenerationApi = {
     api.post('/document-generation/generate', documentRequest),
   
   downloadDocument: (documentId) => 
-    api.get(`/documents/generated/${documentId}`, { responseType: 'blob' }),
+    api.get(`/document-generation/generated/${documentId}`, { 
+      responseType: 'blob' 
+    }),
 };
 
 // User API

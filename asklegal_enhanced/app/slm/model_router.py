@@ -399,6 +399,12 @@ Keep your response focused, practical, and actionable for MSME owners.
         Returns:
             str: Contextual fallback response
         """
+        # Check if this is a calculation query
+        is_calculation, _ = calculation_engine.detect_calculation_query(query)
+        if is_calculation:
+            # For calculation queries, use the calculation engine as fallback
+            return self._generate_with_calculation_engine(query, context)
+        
         # Try to extract relevant information from context
         if context and "Indian legal system" not in context:
             # If we have specific context, provide a response based on it
