@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import styled from 'styled-components';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
+import DashboardPage from './pages/DashboardPage';
 import ChatPage from './pages/ChatPage';
 import DocumentPage from './pages/DocumentPage';
 import DocumentGenerationPage from './pages/DocumentGenerationPage';
@@ -38,7 +39,8 @@ function App() {
           <Sidebar />
           <ContentArea>
             <Routes>
-              <Route path="/" element={<ChatPage />} />
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/chat" element={<ChatPage />} />
               <Route path="/documents" element={<DocumentPage />} />
               <Route path="/document-generation" element={<DocumentGenerationPage />} />

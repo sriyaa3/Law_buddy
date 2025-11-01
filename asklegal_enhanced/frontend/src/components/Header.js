@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { FaBars, FaUserCircle } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 
 const HeaderContainer = styled.header`
   background-color: #2c3e50;
@@ -57,6 +58,8 @@ const UserName = styled.div`
 `;
 
 function Header() {
+  const navigate = useNavigate();
+
   return (
     <HeaderContainer>
       <Logo>
@@ -65,12 +68,12 @@ function Header() {
       </Logo>
       
       <Nav>
-        <NavItem>Dashboard</NavItem>
+        <NavItem onClick={() => navigate('/dashboard')}>Dashboard</NavItem>
         <NavItem>Help</NavItem>
-        <NavItem>Settings</NavItem>
+        <NavItem onClick={() => navigate('/profile')}>Settings</NavItem>
       </Nav>
       
-      <UserMenu>
+      <UserMenu onClick={() => navigate('/profile')}>
         <UserAvatar>
           <FaUserCircle />
         </UserAvatar>

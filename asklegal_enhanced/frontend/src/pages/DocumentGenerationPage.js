@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FaFileContract, FaDownload, FaCheckCircle } from 'react-icons/fa';
 import { documentGenerationApi } from '../services/api';
+import api from '../services/api';
 
 const PageContainer = styled.div`
   max-width: 1200px;
@@ -97,20 +98,6 @@ const Input = styled.input`
   }
 `;
 
-const Select = styled.select`
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  
-  &:focus {
-    outline: none;
-    border-color: #3498db;
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-  }
-`;
-
 const TextArea = styled.textarea`
   width: 100%;
   padding: 12px;
@@ -189,25 +176,12 @@ const DownloadButton = styled.button`
   &:hover {
     background: #219653;
   }
+  
+  &:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+  }
 `;
-
-// We'll fetch templates from the API instead of hardcoding them
-// const DOCUMENT_TEMPLATES = [
-//   {
-//     id: 'nda',
-//     title: 'Non-Disclosure Agreement',
-//     description: 'Create a legally binding NDA for protecting confidential information',
-//     category: 'Contracts',
-//     icon: <FaFileContract />,
-//     fields: [
-//       { name: 'party_a', label: 'First Party Name', type: 'text' },
-//       { name: 'party_b', label: 'Second Party Name', type: 'text' },
-//       { name: 'effective_date', label: 'Effective Date', type: 'date' },
-//       { name: 'disclosure_period', label: 'Disclosure Period', type: 'text', placeholder: 'e.g., 2 years' }
-//     ]
-//   },
-//   // ... other templates
-// ];
 
 function DocumentGenerationPage() {
   const [templates, setTemplates] = useState([]);
@@ -217,6 +191,7 @@ function DocumentGenerationPage() {
   const [generatedDocument, setGeneratedDocument] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     fetchTemplates();
@@ -230,7 +205,7 @@ function DocumentGenerationPage() {
       const templateList = Object.entries(response.data.templates).map(([id, template]) => ({
         id,
         title: template.title,
-        description: `Generate a ${template.title}`,
+        description: template.description,
         category: 'Legal Document',
         icon: <FaFileContract />,
         fields: template.fields.map(field => ({
@@ -294,14 +269,40 @@ function DocumentGenerationPage() {
   const handleDownloadDocument = async () => {
     if (!generatedDocument) return;
     
+    setIsDownloading(true);
     try {
-      // In a real implementation, this would trigger a file download
-      // For now, we'll just show an alert with the download URL
-      alert(`Document generated successfully! In a full implementation, this would download: ${generatedDocument.filename}`);
-      // window.open(generatedDocument.download_url, '_blank');
+      // Get the full download URL
+      const downloadUrl = `http://localhost:8000/api/v1/documents/generated/${generatedDocument.document_id}`;
+      
+      // Create a temporary link and trigger download
+      const response = await fetch(downloadUrl);
+      
+      if (!response.ok) {
+        throw new Error('Download failed');
+      }
+      
+      // Get the blob from response
+      const blob = await response.blob();
+      
+      // Create a temporary URL for the blob
+      const url = window.URL.createObjectURL(blob);
+      
+      // Create a temporary anchor element and trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = generatedDocument.filename;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
     } catch (error) {
       console.error('Error downloading document:', error);
       setError('Error downloading document. Please try again.');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -314,7 +315,7 @@ function DocumentGenerationPage() {
     );
   }
 
-  if (error) {
+  if (error && !selectedTemplate) {
     return (
       <PageContainer>
         <PageTitle>Document Generation</PageTitle>
@@ -396,8 +397,11 @@ function DocumentGenerationPage() {
           <ResultMessage>
             Your {selectedTemplate?.title} has been created and is ready for download.
           </ResultMessage>
-          <DownloadButton onClick={handleDownloadDocument}>
-            <FaDownload /> Download Document
+          <DownloadButton 
+            onClick={handleDownloadDocument}
+            disabled={isDownloading}
+          >
+            <FaDownload /> {isDownloading ? 'Downloading...' : 'Download Document'}
           </DownloadButton>
         </ResultSection>
       )}
