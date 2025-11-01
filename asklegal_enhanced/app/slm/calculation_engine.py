@@ -268,147 +268,109 @@ class CalculationEngine:
     
     def format_calculation_response(self, calculation_result: Dict[str, Any], query: str) -> str:
         """
-        Format calculation result into human-readable response with proper line breaks
+        Format calculation result into markdown-formatted response
         
         Args:
             calculation_result (Dict[str, Any]): Calculation result
             query (str): Original query
             
         Returns:
-            str: Formatted response
+            str: Markdown-formatted response
         """
         breakdown = calculation_result['breakdown']
         
-        # Format the response with clean text formatting and proper line breaks
-        response_lines = []
+        # Format the response with markdown
+        response = f"""# TAX CALCULATION FOR YOUR MSME
+
+## FINANCIAL SUMMARY
+**Turnover:** {self._format_currency(calculation_result['turnover'])}
+
+## EXPENSE BREAKDOWN
+1. **Salary Expenditure:** {self._format_currency(breakdown['salary_expense'])}
+2. **Resource/Material Costs:** {self._format_currency(breakdown['resource_expense'])}
+3. **Miscellaneous Expenses:** {self._format_currency(breakdown['misc_expense'])}
+4. **Total Expenses:** {self._format_currency(breakdown['total_expenses'])}
+
+## PROFIT CALCULATION
+**Profit Before Tax:** {self._format_currency(breakdown['profit_before_tax'])}
+
+---
+
+## TAX LIABILITY BREAKDOWN
+
+### 1. Income Tax (Direct Tax on Profit)
+- **Tax Rate:** {breakdown['income_tax_rate']*100:.0f}%
+- **Income Tax Payable:** {self._format_currency(breakdown['income_tax'])}
+- **Calculation:** {self._format_currency(breakdown['profit_before_tax'])} × {breakdown['income_tax_rate']*100:.0f}%
+
+### 2. Professional Tax
+- **Per Employee:** ₹{self.professional_tax:,}/year
+- **Total Professional Tax:** {self._format_currency(breakdown['professional_tax'])}
+
+### 3. TDS on Salaries (Deducted & Deposited)
+- **Rate:** 10% (average)
+- **TDS Amount:** {self._format_currency(breakdown['tds_on_salary'])}
+- **Note:** This is deducted from employee salaries and deposited to government
+
+### 4. GST (Goods & Services Tax)
+- **GST @ 18%:** {self._format_currency(breakdown['gst_payable'])}
+- **Note:** GST is typically passed on to customers and is NOT a direct cost to the company
+
+---
+
+## TOTAL DIRECT TAX LIABILITY
+### {self._format_currency(calculation_result['total_tax'])}
+
+**This includes:**
+- Income Tax: {self._format_currency(breakdown['income_tax'])}
+- Professional Tax: {self._format_currency(breakdown['professional_tax'])}
+
+## NET PROFIT AFTER TAX
+### {self._format_currency(breakdown['profit_after_tax'])}
+
+---
+
+## LEGAL ADVICE & COMPLIANCE
+
+### Mandatory Compliances:
+1. **Income Tax Return:** File ITR-6 by October 31st
+2. **GST Returns:** Monthly GSTR-1 and GSTR-3B
+3. **TDS Returns:** Quarterly TDS returns (Form 24Q for salaries)
+4. **Professional Tax:** State-specific compliance
+5. **Audit Requirement:** Mandatory tax audit if turnover > ₹10 crore
+
+### Tax-Saving Opportunities:
+1. **Section 80JJAA:** Deduction for new employee hiring
+2. **Section 35AD:** Investment-linked deductions
+3. **Depreciation:** Claim depreciation on assets
+4. **Business Expenses:** Ensure all legitimate business expenses are accounted
+5. **MAT Credit:** Carry forward and utilize MAT credit if applicable
+
+### Recommended Actions:
+1. Consult a Chartered Accountant for detailed tax planning
+2. Maintain proper books of accounts as per Companies Act
+3. Ensure timely TDS deduction and deposit
+4. Keep all supporting documents and invoices
+5. Consider tax-efficient salary structures for employees
+6. Explore government schemes for MSME tax benefits
+
+### Important Notes:
+- This is a **simplified calculation** based on the information provided.
+- Actual tax liability may vary based on:
+  - Specific business type and industry
+  - Availability of deductions and exemptions
+  - State-specific taxes and regulations
+  - Advance tax payments already made
+  - Previous year losses that can be carried forward
+
+### Professional Consultation Recommended:
+For accurate tax planning and compliance, please consult with a qualified Chartered Accountant who can review your complete financial statements.
+
+---
+
+Would you like me to provide more details on any specific aspect of taxation or compliance?"""
         
-        # Header
-        response_lines.append("TAX CALCULATION FOR YOUR MSME")
-        response_lines.append("=" * 50)
-        response_lines.append("")
-        
-        # Financial Summary
-        response_lines.append("FINANCIAL SUMMARY:")
-        response_lines.append("-" * 25)
-        response_lines.append(f"Turnover: {self._format_currency(calculation_result['turnover'])}")
-        response_lines.append("")
-        
-        # Expense Breakdown
-        response_lines.append("EXPENSE BREAKDOWN:")
-        response_lines.append("-" * 25)
-        response_lines.append(f"1. Salary Expenditure: {self._format_currency(breakdown['salary_expense'])}")
-        response_lines.append(f"2. Resource/Material Costs: {self._format_currency(breakdown['resource_expense'])}")
-        response_lines.append(f"3. Miscellaneous Expenses: {self._format_currency(breakdown['misc_expense'])}")
-        response_lines.append(f"4. Total Expenses: {self._format_currency(breakdown['total_expenses'])}")
-        response_lines.append("")
-        
-        # Profit Calculation
-        response_lines.append("PROFIT CALCULATION:")
-        response_lines.append("-" * 25)
-        response_lines.append(f"Profit Before Tax: {self._format_currency(breakdown['profit_before_tax'])}")
-        response_lines.append("")
-        
-        # Tax Liability Breakdown
-        response_lines.append("TAX LIABILITY BREAKDOWN:")
-        response_lines.append("-" * 30)
-        response_lines.append("")
-        
-        # Income Tax
-        response_lines.append("1. Income Tax (Direct Tax on Profit)")
-        response_lines.append(f"   • Tax Rate: {breakdown['income_tax_rate']*100:.0f}%")
-        response_lines.append(f"   • Income Tax Payable: {self._format_currency(breakdown['income_tax'])}")
-        response_lines.append(f"   • Calculation: {self._format_currency(breakdown['profit_before_tax'])} × {breakdown['income_tax_rate']*100:.0f}%")
-        response_lines.append("")
-        
-        # Professional Tax
-        response_lines.append("2. Professional Tax")
-        response_lines.append(f"   • Per Employee: ₹{self.professional_tax:,}/year")
-        response_lines.append(f"   • Total Professional Tax: {self._format_currency(breakdown['professional_tax'])}")
-        response_lines.append("")
-        
-        # TDS on Salaries
-        response_lines.append("3. TDS on Salaries (Deducted & Deposited)")
-        response_lines.append(f"   • Rate: 10% (average)")
-        response_lines.append(f"   • TDS Amount: {self._format_currency(breakdown['tds_on_salary'])}")
-        response_lines.append(f"   • Note: This is deducted from employee salaries and deposited to government")
-        response_lines.append("")
-        
-        # GST
-        response_lines.append("4. GST (Goods & Services Tax)")
-        response_lines.append(f"   • GST @ 18%: {self._format_currency(breakdown['gst_payable'])}")
-        response_lines.append(f"   • Note: GST is typically passed on to customers and is NOT a direct cost to the company")
-        response_lines.append("")
-        
-        # Total Direct Tax Liability
-        response_lines.append("TOTAL DIRECT TAX LIABILITY:")
-        response_lines.append("-" * 35)
-        response_lines.append(f"{self._format_currency(calculation_result['total_tax'])}")
-        response_lines.append("")
-        response_lines.append("This includes:")
-        response_lines.append(f"• Income Tax: {self._format_currency(breakdown['income_tax'])}")
-        response_lines.append(f"• Professional Tax: {self._format_currency(breakdown['professional_tax'])}")
-        response_lines.append("")
-        
-        # Net Profit After Tax
-        response_lines.append("NET PROFIT AFTER TAX:")
-        response_lines.append("-" * 27)
-        response_lines.append(f"{self._format_currency(breakdown['profit_after_tax'])}")
-        response_lines.append("")
-        response_lines.append("=" * 50)
-        response_lines.append("")
-        
-        # Legal Advice & Compliance
-        response_lines.append("LEGAL ADVICE & COMPLIANCE:")
-        response_lines.append("-" * 32)
-        response_lines.append("")
-        
-        # Mandatory Compliances
-        response_lines.append("Mandatory Compliances:")
-        response_lines.append("1. Income Tax Return: File ITR-6 by October 31st")
-        response_lines.append("2. GST Returns: Monthly GSTR-1 and GSTR-3B")
-        response_lines.append("3. TDS Returns: Quarterly TDS returns (Form 24Q for salaries)")
-        response_lines.append("4. Professional Tax: State-specific compliance")
-        response_lines.append("5. Audit Requirement: Mandatory tax audit if turnover > ₹10 crore")
-        response_lines.append("")
-        
-        # Tax-Saving Opportunities
-        response_lines.append("Tax-Saving Opportunities:")
-        response_lines.append("1. Section 80JJAA: Deduction for new employee hiring")
-        response_lines.append("2. Section 35AD: Investment-linked deductions")
-        response_lines.append("3. Depreciation: Claim depreciation on assets")
-        response_lines.append("4. Business Expenses: Ensure all legitimate business expenses are accounted")
-        response_lines.append("5. MAT Credit: Carry forward and utilize MAT credit if applicable")
-        response_lines.append("")
-        
-        # Recommended Actions
-        response_lines.append("Recommended Actions:")
-        response_lines.append("1. Consult a Chartered Accountant for detailed tax planning")
-        response_lines.append("2. Maintain proper books of accounts as per Companies Act")
-        response_lines.append("3. Ensure timely TDS deduction and deposit")
-        response_lines.append("4. Keep all supporting documents and invoices")
-        response_lines.append("5. Consider tax-efficient salary structures for employees")
-        response_lines.append("6. Explore government schemes for MSME tax benefits")
-        response_lines.append("")
-        
-        # Important Notes
-        response_lines.append("Important Notes:")
-        response_lines.append("• This is a simplified calculation based on the information provided.")
-        response_lines.append("• Actual tax liability may vary based on:")
-        response_lines.append("  - Specific business type and industry")
-        response_lines.append("  - Availability of deductions and exemptions")
-        response_lines.append("  - State-specific taxes and regulations")
-        response_lines.append("  - Advance tax payments already made")
-        response_lines.append("  - Previous year losses that can be carried forward")
-        response_lines.append("")
-        response_lines.append("Professional Consultation Recommended:")
-        response_lines.append("For accurate tax planning and compliance, please consult with a qualified")
-        response_lines.append("Chartered Accountant who can review your complete financial statements.")
-        response_lines.append("")
-        response_lines.append("=" * 50)
-        response_lines.append("")
-        response_lines.append("Would you like me to provide more details on any specific aspect of taxation or compliance?")
-        
-        return "\n".join(response_lines)
+        return response
 
 # Global instance
 calculation_engine = CalculationEngine()
