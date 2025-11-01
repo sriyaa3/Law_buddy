@@ -818,24 +818,46 @@ DATABASE_URL=sqlite:///./ai_law_buddy.db
 ---
 
 #### 2. **Document Download Not Working - FIXED** ✅
-**Problem:** After generating documents, clicking download showed popup instead of actual file download.
+**Problem:** After generating documents, clicking download showed popup instead of actual file download. Documents weren't downloadable even after generation.
 
 **Root Cause:** 
 - Frontend environment variable not configured
-- API endpoint path correct but client needed proper blob handling
-- Missing `.env` file in frontend
+- **Critical Issue:** In-memory document storage (`document_storage` dict) was being cleared on every backend reload
+- Document mappings (ID → file path) were lost when backend auto-reloaded
+- Generated files existed but couldn't be retrieved
 
 **Solution:**
-- Created `/app/asklegal_enhanced/frontend/.env` with proper API URL configuration
-- Verified document generation API endpoint structure
-- Confirmed blob download implementation in `DocumentGenerationPage.js` is correct
-- Backend serving files correctly with proper headers
+1. **Implemented Persistent Storage:** 
+   - Created `load_document_storage()` and `save_document_storage()` functions
+   - Document mappings now saved to `/data/document_mappings.json`
+   - Mappings persist across server restarts and reloads
+   
+2. **Created Frontend Environment File:**
+   - Created `/app/asklegal_enhanced/frontend/.env` with proper API URL
+   - Configured `REACT_APP_API_URL=http://localhost:8001/api/v1`
+   
+3. **Verified Download Flow:**
+   - Document generation creates unique ID and saves file
+   - Mapping stored persistently in JSON file
+   - Download endpoint retrieves correct file path from persistent storage
+   - FileResponse serves document with proper headers
 
-**Result:** Documents now download properly as `.docx` files when clicking the download button.
+**Result:** 
+- ✅ Documents generate successfully (37KB .docx files)
+- ✅ Document IDs map to actual file paths persistently
+- ✅ Downloads work correctly with proper Content-Disposition headers
+- ✅ Files persist across backend reloads
 
-**Files Created/Modified:**
+**Files Modified:**
+- `/app/asklegal_enhanced/app/api/api_v1/endpoints/document_generation.py` (Added persistent storage)
 - Created: `/app/asklegal_enhanced/frontend/.env` (NEW)
-- Backend already had correct implementation in `/app/asklegal_enhanced/app/api/api_v1/endpoints/document_generation.py`
+
+**Testing Performed:**
+```bash
+# Generated document with ID: f689fc6e5c5f4a58ba95f718b8775f7f
+# Successfully downloaded as 37KB .docx file
+# Verified file integrity and proper serving
+```
 
 ---
 
