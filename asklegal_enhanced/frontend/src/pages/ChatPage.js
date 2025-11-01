@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { FaPaperPlane, FaRobot, FaUser, FaLightbulb } from 'react-icons/fa';
+import ReactMarkdown from 'react-markdown';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github.css';
 import { chatApi } from '../services/api';
 
 const PageContainer = styled.div`
@@ -53,7 +56,72 @@ const MessageContent = styled.div`
   color: ${props => props.isUser ? 'white' : '#2c3e50'};
   padding: 12px 15px;
   border-radius: 18px;
-  line-height: 1.4;
+  line-height: 1.6;
+  
+  h1, h2, h3 {
+    margin-top: 15px;
+    margin-bottom: 10px;
+    color: ${props => props.isUser ? 'white' : '#2c3e50'};
+  }
+  
+  h1 { font-size: 1.5em; }
+  h2 { font-size: 1.3em; }
+  h3 { font-size: 1.1em; }
+  
+  p {
+    margin: 10px 0;
+  }
+  
+  ul, ol {
+    margin: 10px 0;
+    padding-left: 25px;
+  }
+  
+  li {
+    margin: 5px 0;
+  }
+  
+  strong {
+    font-weight: 600;
+  }
+  
+  code {
+    background: ${props => props.isUser ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'};
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+  }
+  
+  pre {
+    background: ${props => props.isUser ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.05)'};
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
+    margin: 10px 0;
+  }
+  
+  pre code {
+    background: none;
+    padding: 0;
+  }
+  
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10px 0;
+  }
+  
+  th, td {
+    border: 1px solid ${props => props.isUser ? 'rgba(255, 255, 255, 0.3)' : '#ddd'};
+    padding: 8px;
+    text-align: left;
+  }
+  
+  th {
+    background: ${props => props.isUser ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.05)'};
+    font-weight: 600;
+  }
 `;
 
 const SuggestionContainer = styled.div`
@@ -246,7 +314,13 @@ function ChatPage() {
                   {message.isUser ? <FaUser /> : <FaRobot />}
                 </MessageAvatar>
                 <MessageContent isUser={message.isUser}>
-                  {message.text}
+                  {message.isUser ? (
+                    message.text
+                  ) : (
+                    <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
+                      {message.text}
+                    </ReactMarkdown>
+                  )}
                 </MessageContent>
               </Message>
               
