@@ -1,13 +1,32 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+// Use environment variable or fallback to localhost
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 second timeout
 });
+
+// Add response interceptor for better error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      // Server responded with error
+      console.error('API Error:', error.response.status, error.response.data);
+    } else if (error.request) {
+      // Request made but no response
+      console.error('Network Error: No response from server');
+    } else {
+      console.error('Error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Chat API
 export const chatApi = {
@@ -42,8 +61,8 @@ export const documentGenerationApi = {
   generateDocument: (documentRequest) => 
     api.post('/document-generation/generate', documentRequest),
   
-  downloadDocument: (filename) => 
-    api.get(`/document-generation/download/${filename}`),
+  downloadDocument: (documentId) => 
+    api.get(`/documents/generated/${documentId}`, { responseType: 'blob' }),
 };
 
 // User API
@@ -80,6 +99,11 @@ export const msmeApi = {
   
   completeWorkflowStep: (workflowId, stepIndex) => 
     api.post(`/msme/workflows/${workflowId}/steps/${stepIndex}/complete`),
+};
+
+// Health Check API
+export const healthApi = {
+  check: () => api.get('/health'),
 };
 
 export default api;
