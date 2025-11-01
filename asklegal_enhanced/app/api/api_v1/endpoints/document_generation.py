@@ -4,13 +4,33 @@ from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import os
 import uuid
+import json
 from app.documents.generator import document_generator
 from app.core.config import settings
 
 router = APIRouter()
 
-# Store document ID to filename mapping (in production, use a database)
-document_storage: Dict[str, str] = {}
+# Persistent storage file for document mappings
+STORAGE_FILE = os.path.join(settings.DATA_DIR, "document_mappings.json")
+
+def load_document_storage() -> Dict[str, str]:
+    """Load document storage from file"""
+    if os.path.exists(STORAGE_FILE):
+        try:
+            with open(STORAGE_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def save_document_storage(storage: Dict[str, str]):
+    """Save document storage to file"""
+    os.makedirs(os.path.dirname(STORAGE_FILE), exist_ok=True)
+    with open(STORAGE_FILE, 'w') as f:
+        json.dump(storage, f)
+
+# Load existing mappings
+document_storage: Dict[str, str] = load_document_storage()
 
 class DocumentRequest(BaseModel):
     template_type: str
